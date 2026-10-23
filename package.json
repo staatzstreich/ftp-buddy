@@ -1,0 +1,121 @@
+{
+  "name": "craft-remote",
+  "displayName": "Craft Remote",
+  "description": "Open SFTP and FTP/FTPS folders directly in the Explorer, no local copy.",
+  "version": "0.1.0",
+  "publisher": "staatzstreich",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onFileSystem:craftremote",
+    "onCommand:craftRemote.connect"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "craftRemote.connect",
+        "title": "Mit Profil verbinden …",
+        "category": "Craft Remote"
+      },
+      {
+        "command": "craftRemote.addProfile",
+        "title": "Profil anlegen …",
+        "category": "Craft Remote"
+      },
+      {
+        "command": "craftRemote.editProfiles",
+        "title": "Profile bearbeiten (settings.json)",
+        "category": "Craft Remote"
+      },
+      {
+        "command": "craftRemote.forgetPassword",
+        "title": "Gespeichertes Passwort vergessen …",
+        "category": "Craft Remote"
+      },
+      {
+        "command": "craftRemote.reconnect",
+        "title": "Verbindung neu aufbauen",
+        "category": "Craft Remote"
+      }
+    ],
+    "configuration": {
+      "title": "Craft Remote",
+      "properties": {
+        "craftRemote.profiles": {
+          "type": "array",
+          "default": [],
+          "description": "Gespeicherte Verbindungen. Passwörter liegen nicht hier, sondern im Schlüsselbund.",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "protocol",
+              "host"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Anzeigename; wird im Explorer als Ordnername benutzt."
+              },
+              "protocol": {
+                "type": "string",
+                "enum": [
+                  "sftp",
+                  "ftp",
+                  "ftps"
+                ]
+              },
+              "host": {
+                "type": "string"
+              },
+              "port": {
+                "type": "number",
+                "description": "Standard: 22 (sftp), 21 (ftp/ftps)"
+              },
+              "username": {
+                "type": "string",
+                "description": "Bei FTP leer = anonym"
+              },
+              "privateKeyPath": {
+                "type": "string",
+                "description": "Nur SFTP, z. B. ~/.ssh/id_ed25519"
+              },
+              "remotePath": {
+                "type": "string",
+                "description": "Startordner; leer = Home bzw. Login-Verzeichnis"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --platform=node --external:vscode --external:cpu-features --external:./crypto/build/Release/sshcrypto.node --outfile=out/extension.js --sourcemap",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "package": "npm run build && vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "basic-ftp": "^6.2.3",
+    "ssh2-sftp-client": "^12.1.1"
+  },
+  "devDependencies": {
+    "@types/bunyan": "^1.8.11",
+    "@types/node": "^26.6.5",
+    "@types/ssh2-sftp-client": "^9.0.6",
+    "@types/vscode": "1.90",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2",
+    "ftp-srv": "^4.6.3",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
