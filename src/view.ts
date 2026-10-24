@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { Profile, defaultPort, baseName, parentOf } from "./backend";
 import { Connections, profiles, uriFor } from "./backends";
 import { RemoteFileSystem } from "./provider";
+import { Decision, download, upload } from "./transfer";
 
 export type Node = ProfileNode | EntryNode;
 
@@ -71,7 +72,7 @@ export class RemoteTree implements vscode.TreeDataProvider<Node>, vscode.Disposa
   /** Where a profile's tree starts; asked once per connection. */
   private starts = new Map<string, string>();
 
-  private async startPath(p: Profile): Promise<string> {
+  async startPath(p: Profile): Promise<string> {
     if (p.remotePath) return p.remotePath;
     const known = this.starts.get(p.name);
     if (known) return known;
@@ -101,7 +102,7 @@ export class RemoteTree implements vscode.TreeDataProvider<Node>, vscode.Disposa
 const uriOf = (n: EntryNode) => n.uri;
 
 /** New file, new folder, rename and delete on a node of the tree. */
-export function registerFileCommands(tree: RemoteTree): vscode.Disposable[] {
+export function registerFileCommands(tree: RemoteTree, conns: Connections): vscode.Disposable[] {
   const dirOf = (n: EntryNode) => (n.isDir ? n.path : parentOf(n.path));
   const join = (dir: string, name: string) => (dir.endsWith("/") ? dir : dir + "/") + name;
   const name = (prompt: string, value?: string) =>
@@ -118,7 +119,95 @@ export function registerFileCommands(tree: RemoteTree): vscode.Disposable[] {
     }
     tree.refresh();
   };
+  /** Asks what to do with a file that is already there; "all" answers stick for the rest of the run. */
+  const conflictPolicy = () => {
+    let sticky: Decision | undefined;
+    return async (path: string): Promise<Decision> => {
+      if (sticky) return sticky;
+      const pick = await vscode.window.showWarningMessage(
+        `„${path}“ gibt es schon.`,
+        { modal: true },
+        "Überschreiben",
+        "Überspringen",
+        "Alle überschreiben",
+        "Alle überspringen",
+      );
+      switch (pick) {
+        case "Überschreiben": return "overwrite";
+        case "Überspringen": return "skip";
+        case "Alle überschreiben": return (sticky = "overwrite");
+        case "Alle überspringen": return (sticky = "skip");
+        default: return "cancel";
+      }
+    };
+  };
+  const transferred = (verb: string, r: { done: number; skipped: number; failed: { path: string; error: string }[]; cancelled: boolean }) => {
+    const parts = [`${r.done} ${verb}`];
+    if (r.skipped) parts.push(`${r.skipped} übersprungen`);
+    if (r.failed.length) parts.push(`${r.failed.length} fehlgeschlagen`);
+    const text = `${r.cancelled ? "Abgebrochen: " : ""}${parts.join(", ")}.`;
+    if (r.failed.length) {
+      const first = r.failed[0];
+      void vscode.window.showErrorMessage(`${text} Erster Fehler: ${first?.path}: ${first?.error}`);
+    } else {
+      void vscode.window.showInformationMessage(text);
+    }
+  };
+  const backendOf = (n: ProfileNode | EntryNode) => conns.get(encodeURIComponent(n.profile.name));
+
   return [
+    vscode.commands.registerCommand("craftRemote.upload", async (n: ProfileNode | EntryNode) => {
+      const target = n instanceof ProfileNode ? await tree.startPath(n.profile) : n.isDir ? n.path : parentOf(n.path);
+      const picked = await vscode.window.showOpenDialog({
+        canSelectFiles: true,
+        canSelectFolders: true,
+        canSelectMany: true,
+        openLabel: "Hochladen",
+        title: `Hochladen nach ${target}`,
+      });
+      if (!picked?.length) return;
+      const policy = conflictPolicy();
+      const result = await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: `Hochladen nach ${n.profile.name}`, cancellable: true },
+        async (progress, token) => {
+          let last = 0;
+          return upload(await backendOf(n), picked.map((u) => u.fsPath), target, {
+            exists: policy,
+            cancelled: () => token.isCancellationRequested,
+            progress: (done, total, name) => {
+              if (!total) return;
+              progress.report({ increment: ((done - last) / total) * 100, message: `${done} von ${total}: ${name}` });
+              last = done;
+            },
+          });
+        },
+      );
+      transferred("hochgeladen", result);
+      tree.refresh();
+    }),
+    vscode.commands.registerCommand("craftRemote.download", async (n: EntryNode, all?: EntryNode[]) => {
+      const nodes = (all?.length ? all : [n]).filter((x): x is EntryNode => x instanceof EntryNode);
+      const dest = await vscode.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        openLabel: "Hierher laden",
+        title: nodes.length === 1 ? `„${baseName(nodes[0]?.path ?? "")}“ herunterladen nach …` : `${nodes.length} Einträge herunterladen nach …`,
+      });
+      const folder = dest?.[0];
+      if (!folder) return;
+      const policy = conflictPolicy();
+      const result = await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: `Herunterladen von ${n.profile.name}`, cancellable: true },
+        async (progress, token) =>
+          download(await backendOf(n), nodes.map((x) => ({ path: x.path, isDir: x.isDir })), folder.fsPath, {
+            exists: policy,
+            cancelled: () => token.isCancellationRequested,
+            progress: (done, _total, name) => progress.report({ message: `${done} Dateien fertig, jetzt ${name}` }),
+          }),
+      );
+      transferred("heruntergeladen", result);
+    }),
     vscode.commands.registerCommand("craftRemote.newFile", async (n: EntryNode) => {
       const f = await name("Name der neuen Datei");
       if (!f) return;

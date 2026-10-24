@@ -2,7 +2,7 @@
   "name": "craft-remote",
   "displayName": "Craft Remote",
   "description": "Open SFTP and FTP/FTPS folders directly in the Explorer, no local copy.",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "publisher": "staatzstreich",
   "license": "MIT",
   "private": true,
@@ -97,6 +97,18 @@
         "title": "Aktualisieren",
         "category": "Craft Remote",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "craftRemote.upload",
+        "title": "Hochladen …",
+        "category": "Craft Remote",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "craftRemote.download",
+        "title": "Herunterladen …",
+        "category": "Craft Remote",
+        "icon": "$(cloud-download)"
       }
     ],
     "configuration": {
@@ -256,6 +268,26 @@
           "command": "craftRemote.copyPath",
           "when": "view == craftRemote.profiles && viewItem =~ /^remote\\./",
           "group": "3_path"
+        },
+        {
+          "command": "craftRemote.upload",
+          "when": "view == craftRemote.profiles && viewItem == remote.dir",
+          "group": "inline@0"
+        },
+        {
+          "command": "craftRemote.upload",
+          "when": "view == craftRemote.profiles && viewItem == profile.connected",
+          "group": "inline@0"
+        },
+        {
+          "command": "craftRemote.upload",
+          "when": "view == craftRemote.profiles && viewItem =~ /^remote\\./ || view == craftRemote.profiles && viewItem == profile.connected",
+          "group": "0_transfer@1"
+        },
+        {
+          "command": "craftRemote.download",
+          "when": "view == craftRemote.profiles && viewItem =~ /^remote\\\\./",
+          "group": "0_transfer@2"
         }
       ],
       "commandPalette": [
@@ -277,6 +309,14 @@
         },
         {
           "command": "craftRemote.copyPath",
+          "when": "false"
+        },
+        {
+          "command": "craftRemote.upload",
+          "when": "false"
+        },
+        {
+          "command": "craftRemote.download",
           "when": "false"
         }
       ]

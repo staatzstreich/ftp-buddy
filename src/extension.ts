@@ -10,14 +10,14 @@ export function activate(context: vscode.ExtensionContext) {
   const conns = new Connections(context.secrets, hostKeys, output);
   const fs = new RemoteFileSystem(conns);
   const tree = new RemoteTree(conns, fs);
-  const treeView = vscode.window.createTreeView("craftRemote.profiles", { treeDataProvider: tree });
+  const treeView = vscode.window.createTreeView("craftRemote.profiles", { treeDataProvider: tree, canSelectMany: true });
   context.subscriptions.push(
     output,
     vscode.workspace.registerFileSystemProvider(SCHEME, fs, { isCaseSensitive: true }),
     { dispose: () => void conns.drop() },
     treeView,
     tree,
-    ...registerFileCommands(tree),
+    ...registerFileCommands(tree, conns),
     vscode.commands.registerCommand("craftRemote.connect", async (item?: ProfileNode) => {
       const node = await connect(conns, output, item?.profile);
       if (node) await treeView.reveal(node, { expand: true, focus: false, select: false }).then(undefined, () => undefined);

@@ -11,6 +11,12 @@ auf: darunter stehen Ordner und Dateien des Servers. Ein Klick auf eine Datei ö
 schreibt direkt auf den Server. Es gibt keinen Explorer-Ordner, keinen Workspace und kein zusätzliches Fenster.
 
 Rechtsklick auf Ordner und Dateien: Neue Datei, Neuer Ordner, Umbenennen, Löschen (Ordner mit Inhalt, nach Rückfrage), Pfad kopieren.
+**Hochladen …** (Rechtsklick auf einen Ordner oder ein verbundenes Profil, oder das Wolken-Symbol in der Zeile): öffnet die Dateiauswahl des
+Mac, mehrere Dateien und ganze Ordner sind möglich. **Herunterladen …** (Rechtsklick auf Datei oder Ordner, auch mehrere markierte):
+fragt nach einem lokalen Zielordner. Beides zeigt einen Fortschritt mit „Abbrechen“. Gibt es eine Datei schon, fragt ein Dialog:
+Überschreiben, Überspringen, Alle überschreiben, Alle überspringen. Ordner werden samt Inhalt übertragen, leere Ordner auch;
+symbolische Links werden beim Hochladen übersprungen.
+
 Oben im Feld: Aktualisieren, Profil anlegen, Einstellungen, Zeitmessung. Rechtsklick auf ein Profil: gespeichertes Passwort vergessen.
 
 Eine Verbindung endet beim Trennen, beim Schließen oder Neuladen des Fensters und wenn der Server sie beendet (sie wird beim
@@ -47,7 +53,7 @@ Beispielprofil:
 ## Grenzen des Prototyps
 
 - Ordner werden nicht überwacht: Änderungen von außen siehst du erst nach „Aktualisieren“ (Pfeil oben im Feld).
-- Kein Hochladen oder Herunterladen per Drag & Drop, keine Suche über den Server.
+- Hoch- und Herunterladen nur über die Befehle, nicht per Drag & Drop; jede Datei wird komplett im Speicher gehalten. Keine Suche über den Server.
 - Kein Terminal, keine Language Server auf Remote-Dateien (viele Erweiterungen sind auf `file:` beschränkt).
 - Große Dateien werden komplett in den Speicher gelesen; Ordner löschen geht Datei für Datei.
 - FTP: keine Zeitstempel bei Servern ohne MLSD; Symlinks werden durch Auflisten als Ordner erkannt.
@@ -61,8 +67,8 @@ npm install
 npm test            # FTP (ftp-srv) und SFTP (lokaler sshd) gegen dieselben Vertragstests
 npm run typecheck
 npm run build       # out/extension.js
-npm run package     # craft-remote-0.3.1.vsix
-code --install-extension craft-remote-0.3.1.vsix
+npm run package     # craft-remote-0.4.0.vsix
+code --install-extension craft-remote-0.4.0.vsix
 ```
 
 Zum Ausprobieren ohne Installation: Ordner in VS Code öffnen und F5 (Extension Development Host).
