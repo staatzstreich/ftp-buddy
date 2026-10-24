@@ -2,26 +2,32 @@ import * as vscode from "vscode";
 import { Profile, defaultPort } from "./backend";
 import { Connections, SCHEME, StoredHostKeys, profiles, uriFor } from "./backends";
 import { RemoteFileSystem } from "./provider";
-import { ProfileItem, ProfilesView, folderOf } from "./view";
+import { ProfileNode, RemoteTree, registerFileCommands } from "./view";
 
 export function activate(context: vscode.ExtensionContext) {
   const output = vscode.window.createOutputChannel("Craft Remote");
   const hostKeys = new StoredHostKeys(context.globalState, output);
   const conns = new Connections(context.secrets, hostKeys, output);
-  const view = new ProfilesView(conns);
+  const fs = new RemoteFileSystem(conns);
+  const tree = new RemoteTree(conns, fs);
+  const treeView = vscode.window.createTreeView("craftRemote.profiles", { treeDataProvider: tree });
   context.subscriptions.push(
     output,
-    vscode.workspace.registerFileSystemProvider(SCHEME, new RemoteFileSystem(conns), { isCaseSensitive: true }),
+    vscode.workspace.registerFileSystemProvider(SCHEME, fs, { isCaseSensitive: true }),
     { dispose: () => void conns.drop() },
-    vscode.window.registerTreeDataProvider("craftRemote.profiles", view),
-    view,
-    vscode.commands.registerCommand("craftRemote.connect", (item?: ProfileItem) => connect(conns, output, item?.profile)),
-    vscode.commands.registerCommand("craftRemote.disconnect", (item?: ProfileItem) => disconnect(conns, item?.profile)),
+    treeView,
+    tree,
+    ...registerFileCommands(tree),
+    vscode.commands.registerCommand("craftRemote.connect", async (item?: ProfileNode) => {
+      const node = await connect(conns, output, item?.profile);
+      if (node) await treeView.reveal(node, { expand: true, focus: false, select: false }).then(undefined, () => undefined);
+    }),
+    vscode.commands.registerCommand("craftRemote.disconnect", (item?: ProfileNode) => disconnect(conns, item?.profile)),
     vscode.commands.registerCommand("craftRemote.addProfile", addProfile),
     vscode.commands.registerCommand("craftRemote.editProfiles", () =>
       vscode.commands.executeCommand("workbench.action.openSettings", "craftRemote.profiles"),
     ),
-    vscode.commands.registerCommand("craftRemote.forgetPassword", async (item?: ProfileItem) => {
+    vscode.commands.registerCommand("craftRemote.forgetPassword", async (item?: ProfileNode) => {
       const p = item?.profile ?? (await pickProfile("Passwort vergessen für …"));
       if (p) await conns.forgetPassword(p.name);
     }),
@@ -50,52 +56,32 @@ async function pickProfile(placeHolder: string): Promise<Profile | undefined> {
   return item?.p;
 }
 
-async function connect(conns: Connections, output: vscode.OutputChannel, chosen?: Profile) {
+/** Logs in (asking for the password if needed) and returns the node to open in the tree. */
+async function connect(conns: Connections, output: vscode.OutputChannel, chosen?: Profile): Promise<ProfileNode | undefined> {
   const p = chosen ?? (await pickProfile("Mit welchem Profil verbinden?"));
-  if (!p) return;
-  await vscode.window.withProgress(
+  if (!p) return undefined;
+  return vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: `Verbinde mit ${p.host} …` },
     async () => {
       try {
         const backend = await conns.get(encodeURIComponent(p.name));
-        const start = p.remotePath || (await backend.home());
-        const uri = uriFor(p, start);
-        const folders = vscode.workspace.workspaceFolders ?? [];
-        if (folders.some((f) => f.uri.toString() === uri.toString())) return;
-        const mode = vscode.workspace.getConfiguration("craftRemote").get<string>("openIn", "window");
-        if (mode === "window") {
-          // A window of its own: an empty window is reused, one with a folder stays as it is. No
-          // "Untitled Workspace", which VS Code makes when a second folder is added.
-          await vscode.commands.executeCommand("vscode.openFolder", uri, { forceNewWindow: folders.length > 0, forceReuseWindow: folders.length === 0 });
-          // The new window opens its own connection; this one only checked the login.
-          if (folders.length > 0) await conns.drop(p.name);
-          return;
-        }
-        vscode.workspace.updateWorkspaceFolders(folders.length, 0, { uri, name: p.name });
-        await vscode.commands.executeCommand("workbench.view.explorer");
+        await backend.home();
+        return new ProfileNode(p, true);
       } catch (e) {
         // Wrong password or host: forget the cached connection so the next try asks again.
         await conns.drop(p.name);
         output.appendLine(`[${p.name}] Fehler: ${e instanceof Error ? e.message : e}`);
         vscode.window.showErrorMessage(`Verbindung zu ${p.host} fehlgeschlagen: ${e instanceof Error ? e.message : e}`);
+        return undefined;
       }
     },
   );
 }
 
-/** Closes the connection and takes the folder out of the Explorer. */
+/** Closes the connection; files that are still open stay in their editors. */
 async function disconnect(conns: Connections, chosen?: Profile) {
   const p = chosen ?? (await pickProfile("Welche Verbindung trennen?"));
-  if (!p) return;
-  // The folder goes first: anything still reading from it would otherwise open the connection again.
-  const folder = folderOf(p);
-  if (folder && (vscode.workspace.workspaceFolders?.length ?? 0) === 1) {
-    // The only folder of this window: close it, the window stays open and empty.
-    await vscode.commands.executeCommand("workbench.action.closeFolder");
-  } else if (folder) {
-    vscode.workspace.updateWorkspaceFolders(folder.index, 1);
-  }
-  await conns.drop(p.name);
+  if (p) await conns.drop(p.name);
 }
 
 async function addProfile() {

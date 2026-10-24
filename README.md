@@ -6,16 +6,22 @@ Dateien werden beim Öffnen vom Server gelesen und beim Speichern direkt dorthin
 ## Benutzen
 
 In der Seitenleiste gibt es ein Feld **Craft Remote** (Server-Symbol) mit allen Profilen. Ein grüner Punkt zeigt eine bestehende
-Verbindung. Pro Zeile gibt es **Verbinden** (Stecker, auch per Klick) und **Trennen** (nimmt den Ordner aus dem Explorer und
-schließt die Verbindung). Oben im Feld: Profil anlegen, Einstellungen, Zeitmessung. Rechtsklick: gespeichertes Passwort vergessen.
+Verbindung. Pro Profil gibt es **Verbinden** (Stecker, auch per Klick auf die Zeile) und **Trennen**. Ein verbundenes Profil klappt
+auf: darunter stehen Ordner und Dateien des Servers. Ein Klick auf eine Datei öffnet sie in einem normalen Tab, **Speichern**
+schreibt direkt auf den Server. Es gibt keinen Explorer-Ordner, keinen Workspace und kein zusätzliches Fenster.
+
+Rechtsklick auf Ordner und Dateien: Neue Datei, Neuer Ordner, Umbenennen, Löschen (Ordner mit Inhalt, nach Rückfrage), Pfad kopieren.
+Oben im Feld: Aktualisieren, Profil anlegen, Einstellungen, Zeitmessung. Rechtsklick auf ein Profil: gespeichertes Passwort vergessen.
+
 Eine Verbindung endet beim Trennen, beim Schließen oder Neuladen des Fensters und wenn der Server sie beendet (sie wird beim
-nächsten Zugriff neu aufgebaut).
+nächsten Zugriff neu aufgebaut). Geöffnete Dateien bleiben nach dem Trennen in ihren Tabs.
+
+Die Einrichtung:
 
 1. Befehlspalette (⇧⌘P) → **Craft Remote: Profil anlegen …** (Name, Protokoll, Server, Port, Benutzer, Schlüssel, Startordner).
    Profile stehen danach in den Einstellungen unter `craftRemote.profiles`.
-2. **Craft Remote: Mit Profil verbinden …** → der Ordner wird als Workspace-Ordner hinzugefügt.
+2. Im Feld **Craft Remote** auf das Profil klicken.
 3. Das Passwort wird beim ersten Verbinden gefragt und im Schlüsselbund (VS Code `SecretStorage`) gespeichert.
-   **Gespeichertes Passwort vergessen …** löscht es wieder.
 
 Beim ersten Kontakt mit einem SFTP-Server zeigt ein Dialog den Fingerabdruck (Trust on first use). Ändert er sich später,
 wird die Verbindung abgelehnt. **Bekannte Server vergessen** setzt das zurück.
@@ -38,16 +44,10 @@ Beispielprofil:
 ]
 ```
 
-## Fenster und „Untitled Workspace“
-
-Standardmäßig (`craftRemote.openIn` = `window`) öffnet **Verbinden** den Remote-Ordner in einem eigenen Fenster: ein leeres Fenster
-wird benutzt, sonst öffnet sich ein neues. Dadurch entsteht kein „Untitled Workspace“, denn den macht VS Code nur, wenn man einem
-Fenster mit Ordner einen zweiten hinzufügt. Mit `addToWindow` wird der Ordner stattdessen im aktuellen Fenster ergänzt.
-**Trennen** schließt den Ordner dieses Fensters (ist es der einzige, bleibt das Fenster leer offen).
-
 ## Grenzen des Prototyps
 
-- Ordner werden nicht überwacht: Änderungen von außen siehst du erst nach „Explorer aktualisieren“.
+- Ordner werden nicht überwacht: Änderungen von außen siehst du erst nach „Aktualisieren“ (Pfeil oben im Feld).
+- Kein Hochladen oder Herunterladen per Drag & Drop, keine Suche über den Server.
 - Kein Terminal, keine Language Server auf Remote-Dateien (viele Erweiterungen sind auf `file:` beschränkt).
 - Große Dateien werden komplett in den Speicher gelesen; Ordner löschen geht Datei für Datei.
 - FTP: keine Zeitstempel bei Servern ohne MLSD; Symlinks werden durch Auflisten als Ordner erkannt.
@@ -61,8 +61,8 @@ npm install
 npm test            # FTP (ftp-srv) und SFTP (lokaler sshd) gegen dieselben Vertragstests
 npm run typecheck
 npm run build       # out/extension.js
-npm run package     # craft-remote-0.2.1.vsix
-code --install-extension craft-remote-0.2.1.vsix
+npm run package     # craft-remote-0.3.0.vsix
+code --install-extension craft-remote-0.3.0.vsix
 ```
 
 Zum Ausprobieren ohne Installation: Ordner in VS Code öffnen und F5 (Extension Development Host).

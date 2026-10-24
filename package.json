@@ -2,7 +2,7 @@
   "name": "craft-remote",
   "displayName": "Craft Remote",
   "description": "Open SFTP and FTP/FTPS folders directly in the Explorer, no local copy.",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "publisher": "staatzstreich",
   "license": "MIT",
   "private": true,
@@ -64,6 +64,39 @@
         "title": "Trennen",
         "category": "Craft Remote",
         "icon": "$(debug-disconnect)"
+      },
+      {
+        "command": "craftRemote.newFile",
+        "title": "Neue Datei …",
+        "category": "Craft Remote",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "craftRemote.newFolder",
+        "title": "Neuer Ordner …",
+        "category": "Craft Remote",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "craftRemote.rename",
+        "title": "Umbenennen …",
+        "category": "Craft Remote"
+      },
+      {
+        "command": "craftRemote.delete",
+        "title": "Löschen …",
+        "category": "Craft Remote"
+      },
+      {
+        "command": "craftRemote.copyPath",
+        "title": "Pfad kopieren",
+        "category": "Craft Remote"
+      },
+      {
+        "command": "craftRemote.refresh",
+        "title": "Aktualisieren",
+        "category": "Craft Remote",
+        "icon": "$(refresh)"
       }
     ],
     "configuration": {
@@ -114,19 +147,6 @@
               }
             }
           }
-        },
-        "craftRemote.openIn": {
-          "type": "string",
-          "enum": [
-            "window",
-            "addToWindow"
-          ],
-          "enumDescriptions": [
-            "Im eigenen Fenster: ein leeres Fenster wird benutzt, sonst öffnet sich ein neues. Kein „Untitled Workspace“.",
-            "Als zusätzlicher Ordner im aktuellen Fenster (macht daraus einen Multi-Root-Workspace)."
-          ],
-          "default": "window",
-          "description": "Wo ein Remote-Ordner beim Verbinden geöffnet wird."
         }
       }
     },
@@ -155,6 +175,11 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "craftRemote.refresh",
+          "when": "view == craftRemote.profiles",
+          "group": "navigation@0"
+        },
         {
           "command": "craftRemote.addProfile",
           "when": "view == craftRemote.profiles",
@@ -186,6 +211,73 @@
           "command": "craftRemote.forgetPassword",
           "when": "view == craftRemote.profiles",
           "group": "9_password"
+        },
+        {
+          "command": "craftRemote.newFile",
+          "when": "view == craftRemote.profiles && viewItem == remote.dir",
+          "group": "inline@1"
+        },
+        {
+          "command": "craftRemote.newFolder",
+          "when": "view == craftRemote.profiles && viewItem == remote.dir",
+          "group": "inline@2"
+        },
+        {
+          "command": "craftRemote.newFile",
+          "when": "view == craftRemote.profiles && viewItem == remote.dir",
+          "group": "1_new@1"
+        },
+        {
+          "command": "craftRemote.newFolder",
+          "when": "view == craftRemote.profiles && viewItem == remote.dir",
+          "group": "1_new@2"
+        },
+        {
+          "command": "craftRemote.newFile",
+          "when": "view == craftRemote.profiles && viewItem == remote.file",
+          "group": "1_new@1"
+        },
+        {
+          "command": "craftRemote.newFolder",
+          "when": "view == craftRemote.profiles && viewItem == remote.file",
+          "group": "1_new@2"
+        },
+        {
+          "command": "craftRemote.rename",
+          "when": "view == craftRemote.profiles && viewItem =~ /^remote\\./",
+          "group": "2_edit@1"
+        },
+        {
+          "command": "craftRemote.delete",
+          "when": "view == craftRemote.profiles && viewItem =~ /^remote\\./",
+          "group": "2_edit@2"
+        },
+        {
+          "command": "craftRemote.copyPath",
+          "when": "view == craftRemote.profiles && viewItem =~ /^remote\\./",
+          "group": "3_path"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "craftRemote.newFile",
+          "when": "false"
+        },
+        {
+          "command": "craftRemote.newFolder",
+          "when": "false"
+        },
+        {
+          "command": "craftRemote.rename",
+          "when": "false"
+        },
+        {
+          "command": "craftRemote.delete",
+          "when": "false"
+        },
+        {
+          "command": "craftRemote.copyPath",
+          "when": "false"
         }
       ]
     }
