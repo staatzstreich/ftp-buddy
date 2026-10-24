@@ -3,31 +3,31 @@ import { Backend, HostKeys, Profile, once, timed } from "./backend";
 import { FtpBackend } from "./ftp";
 import { SftpBackend } from "./sftp";
 
-export const SCHEME = "craftremote";
+export const SCHEME = "ftpbuddy";
 
 export function profiles(): Profile[] {
-  return vscode.workspace.getConfiguration("craftRemote").get<Profile[]>("profiles", []);
+  return vscode.workspace.getConfiguration("ftpBuddy").get<Profile[]>("profiles", []);
 }
 
 export function uriFor(profile: Profile, path: string): vscode.Uri {
   return vscode.Uri.from({ scheme: SCHEME, authority: encodeURIComponent(profile.name), path });
 }
 
-const secretKey = (name: string) => `craftRemote.password.${name}`;
+const secretKey = (name: string) => `ftpBuddy.password.${name}`;
 
 /** Trust on first use: the first fingerprint is confirmed by the user, later ones must match. */
 export class StoredHostKeys implements HostKeys {
   constructor(private state: vscode.Memento, private output: vscode.OutputChannel) {}
 
   async verify(server: string, fingerprint: string): Promise<boolean> {
-    const known = this.state.get<Record<string, string>>("craftRemote.hostKeys", {});
+    const known = this.state.get<Record<string, string>>("ftpBuddy.hostKeys", {});
     const have = known[server];
     this.output.appendLine(`${server}: Fingerabdruck ${fingerprint} (${have ? (have === fingerprint ? "bekannt" : "GEÄNDERT") : "neu, warte auf Bestätigung im Dialog"})`);
     if (have === fingerprint) return true;
     if (have) {
       vscode.window.showErrorMessage(
         `Der Schlüssel von ${server} hat sich geändert (jetzt ${fingerprint}). Das kann ein Angriff sein. ` +
-          `Wenn der Server neu aufgesetzt wurde: „Craft Remote: Bekannte Server vergessen“.`,
+          `Wenn der Server neu aufgesetzt wurde: „FTP Buddy: Bekannte Server vergessen“.`,
         { modal: true },
       );
       return false;
@@ -38,12 +38,12 @@ export class StoredHostKeys implements HostKeys {
       "Vertrauen",
     );
     if (ok !== "Vertrauen") return false;
-    await this.state.update("craftRemote.hostKeys", { ...known, [server]: fingerprint });
+    await this.state.update("ftpBuddy.hostKeys", { ...known, [server]: fingerprint });
     return true;
   }
 
   async forgetAll(): Promise<void> {
-    await this.state.update("craftRemote.hostKeys", {});
+    await this.state.update("ftpBuddy.hostKeys", {});
   }
 }
 
@@ -64,7 +64,7 @@ export class Connections {
   profileOf(authority: string): Profile {
     const name = decodeURIComponent(authority);
     const p = profiles().find((x) => x.name === name);
-    if (!p) throw vscode.FileSystemError.Unavailable(`Kein Profil „${name}“ in craftRemote.profiles`);
+    if (!p) throw vscode.FileSystemError.Unavailable(`Kein Profil „${name}“ in ftpBuddy.profiles`);
     return p;
   }
 

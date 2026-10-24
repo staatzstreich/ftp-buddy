@@ -1,8 +1,8 @@
 {
-  "name": "craft-remote",
-  "displayName": "Craft Remote",
-  "description": "Open SFTP and FTP/FTPS folders directly in the Explorer, no local copy.",
-  "version": "0.7.0",
+  "name": "ftp-buddy",
+  "displayName": "FTP Buddy",
+  "description": "SFTP, FTP und FTPS in der Seitenleiste: durchsuchen, bearbeiten, hoch- und herunterladen, ohne lokale Kopie.",
+  "version": "0.8.0",
   "publisher": "staatzstreich",
   "license": "MIT",
   "private": true,
@@ -14,135 +14,135 @@
   ],
   "main": "./out/extension.js",
   "activationEvents": [
-    "onFileSystem:craftremote",
-    "onView:craftRemote.profiles",
-    "onCommand:craftRemote.connect"
+    "onFileSystem:ftpbuddy",
+    "onView:ftpBuddy.profiles",
+    "onCommand:ftpBuddy.connect"
   ],
   "contributes": {
     "commands": [
       {
-        "command": "craftRemote.connect",
+        "command": "ftpBuddy.connect",
         "title": "Verbinden",
-        "category": "Craft Remote",
+        "category": "FTP Buddy",
         "icon": "$(plug)"
       },
       {
-        "command": "craftRemote.addProfile",
+        "command": "ftpBuddy.addProfile",
         "title": "Profil anlegen …",
-        "category": "Craft Remote",
+        "category": "FTP Buddy",
         "icon": "$(add)"
       },
       {
-        "command": "craftRemote.editProfiles",
+        "command": "ftpBuddy.editProfiles",
         "title": "Profile bearbeiten (settings.json)",
-        "category": "Craft Remote",
+        "category": "FTP Buddy",
         "icon": "$(gear)"
       },
       {
-        "command": "craftRemote.forgetPassword",
+        "command": "ftpBuddy.forgetPassword",
         "title": "Gespeichertes Passwort vergessen …",
-        "category": "Craft Remote"
+        "category": "FTP Buddy"
       },
       {
-        "command": "craftRemote.reconnect",
+        "command": "ftpBuddy.reconnect",
         "title": "Verbindung neu aufbauen",
-        "category": "Craft Remote"
+        "category": "FTP Buddy"
       },
       {
-        "command": "craftRemote.forgetHostKeys",
+        "command": "ftpBuddy.forgetHostKeys",
         "title": "Bekannte Server vergessen",
-        "category": "Craft Remote"
+        "category": "FTP Buddy"
       },
       {
-        "command": "craftRemote.showLog",
+        "command": "ftpBuddy.showLog",
         "title": "Zeitmessung anzeigen",
-        "category": "Craft Remote",
+        "category": "FTP Buddy",
         "icon": "$(output)"
       },
       {
-        "command": "craftRemote.disconnect",
+        "command": "ftpBuddy.disconnect",
         "title": "Trennen",
-        "category": "Craft Remote",
+        "category": "FTP Buddy",
         "icon": "$(debug-disconnect)"
       },
       {
-        "command": "craftRemote.newFile",
+        "command": "ftpBuddy.newFile",
         "title": "Neue Datei …",
-        "category": "Craft Remote",
+        "category": "FTP Buddy",
         "icon": "$(new-file)"
       },
       {
-        "command": "craftRemote.newFolder",
+        "command": "ftpBuddy.newFolder",
         "title": "Neuer Ordner …",
-        "category": "Craft Remote",
+        "category": "FTP Buddy",
         "icon": "$(new-folder)"
       },
       {
-        "command": "craftRemote.rename",
+        "command": "ftpBuddy.rename",
         "title": "Umbenennen …",
-        "category": "Craft Remote"
+        "category": "FTP Buddy"
       },
       {
-        "command": "craftRemote.delete",
+        "command": "ftpBuddy.delete",
         "title": "Löschen …",
-        "category": "Craft Remote"
+        "category": "FTP Buddy"
       },
       {
-        "command": "craftRemote.copyPath",
+        "command": "ftpBuddy.copyPath",
         "title": "Pfad kopieren",
-        "category": "Craft Remote"
+        "category": "FTP Buddy"
       },
       {
-        "command": "craftRemote.refresh",
+        "command": "ftpBuddy.refresh",
         "title": "Aktualisieren",
-        "category": "Craft Remote",
+        "category": "FTP Buddy",
         "icon": "$(refresh)"
       },
       {
-        "command": "craftRemote.upload",
+        "command": "ftpBuddy.upload",
         "title": "Hochladen …",
-        "category": "Craft Remote",
+        "category": "FTP Buddy",
         "icon": "$(cloud-upload)"
       },
       {
-        "command": "craftRemote.download",
+        "command": "ftpBuddy.download",
         "title": "Herunterladen",
-        "category": "Craft Remote",
+        "category": "FTP Buddy",
         "icon": "$(cloud-download)"
       },
       {
-        "command": "craftRemote.uploadFromExplorer",
-        "title": "Zu Craft Remote hochladen",
-        "category": "Craft Remote"
+        "command": "ftpBuddy.uploadFromExplorer",
+        "title": "Zu FTP Buddy hochladen",
+        "category": "FTP Buddy"
       },
       {
-        "command": "craftRemote.goRoot",
+        "command": "ftpBuddy.goRoot",
         "title": "Wurzelverzeichnis / anzeigen",
-        "category": "Craft Remote",
+        "category": "FTP Buddy",
         "icon": "$(root-folder)"
       },
       {
-        "command": "craftRemote.goUp",
+        "command": "ftpBuddy.goUp",
         "title": "Eine Ebene höher",
-        "category": "Craft Remote",
+        "category": "FTP Buddy",
         "icon": "$(arrow-up)"
       },
       {
-        "command": "craftRemote.goStart",
+        "command": "ftpBuddy.goStart",
         "title": "Zum Startordner",
-        "category": "Craft Remote",
+        "category": "FTP Buddy",
         "icon": "$(home)"
       },
       {
-        "command": "craftRemote.setRoot",
+        "command": "ftpBuddy.setRoot",
         "title": "Hier als oberste Ebene anzeigen",
-        "category": "Craft Remote"
+        "category": "FTP Buddy"
       }
     ],
     "configuration": {
-      "title": "Craft Remote",
+      "title": "FTP Buddy",
       "properties": {
-        "craftRemote.profiles": {
+        "ftpBuddy.profiles": {
           "type": "array",
           "default": [],
           "description": "Gespeicherte Verbindungen. Passwörter liegen nicht hier, sondern im Schlüsselbund.",
@@ -197,204 +197,204 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "craftRemote",
-          "title": "Craft Remote",
+          "id": "ftpBuddy",
+          "title": "FTP Buddy",
           "icon": "resources/remote.svg"
         }
       ]
     },
     "views": {
-      "craftRemote": [
+      "ftpBuddy": [
         {
-          "id": "craftRemote.profiles",
+          "id": "ftpBuddy.profiles",
           "name": "Verbindungen"
         }
       ]
     },
     "viewsWelcome": [
       {
-        "view": "craftRemote.profiles",
-        "contents": "Noch kein Profil angelegt.\n[Profil anlegen](command:craftRemote.addProfile)"
+        "view": "ftpBuddy.profiles",
+        "contents": "Noch kein Profil angelegt.\n[Profil anlegen](command:ftpBuddy.addProfile)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "craftRemote.refresh",
-          "when": "view == craftRemote.profiles",
+          "command": "ftpBuddy.refresh",
+          "when": "view == ftpBuddy.profiles",
           "group": "navigation@0"
         },
         {
-          "command": "craftRemote.addProfile",
-          "when": "view == craftRemote.profiles",
+          "command": "ftpBuddy.addProfile",
+          "when": "view == ftpBuddy.profiles",
           "group": "navigation@1"
         },
         {
-          "command": "craftRemote.editProfiles",
-          "when": "view == craftRemote.profiles",
+          "command": "ftpBuddy.editProfiles",
+          "when": "view == ftpBuddy.profiles",
           "group": "navigation@2"
         },
         {
-          "command": "craftRemote.showLog",
-          "when": "view == craftRemote.profiles",
+          "command": "ftpBuddy.showLog",
+          "when": "view == ftpBuddy.profiles",
           "group": "navigation@3"
         }
       ],
       "view/item/context": [
         {
-          "command": "craftRemote.connect",
-          "when": "view == craftRemote.profiles && viewItem == profile.disconnected",
+          "command": "ftpBuddy.connect",
+          "when": "view == ftpBuddy.profiles && viewItem == profile.disconnected",
           "group": "inline"
         },
         {
-          "command": "craftRemote.disconnect",
-          "when": "view == craftRemote.profiles && viewItem == profile.connected",
+          "command": "ftpBuddy.disconnect",
+          "when": "view == ftpBuddy.profiles && viewItem == profile.connected",
           "group": "inline"
         },
         {
-          "command": "craftRemote.forgetPassword",
-          "when": "view == craftRemote.profiles",
+          "command": "ftpBuddy.forgetPassword",
+          "when": "view == ftpBuddy.profiles",
           "group": "9_password"
         },
         {
-          "command": "craftRemote.newFile",
-          "when": "view == craftRemote.profiles && viewItem == remote.dir",
+          "command": "ftpBuddy.newFile",
+          "when": "view == ftpBuddy.profiles && viewItem == remote.dir",
           "group": "inline@1"
         },
         {
-          "command": "craftRemote.newFolder",
-          "when": "view == craftRemote.profiles && viewItem == remote.dir",
+          "command": "ftpBuddy.newFolder",
+          "when": "view == ftpBuddy.profiles && viewItem == remote.dir",
           "group": "inline@2"
         },
         {
-          "command": "craftRemote.newFile",
-          "when": "view == craftRemote.profiles && viewItem == remote.dir",
+          "command": "ftpBuddy.newFile",
+          "when": "view == ftpBuddy.profiles && viewItem == remote.dir",
           "group": "1_new@1"
         },
         {
-          "command": "craftRemote.newFolder",
-          "when": "view == craftRemote.profiles && viewItem == remote.dir",
+          "command": "ftpBuddy.newFolder",
+          "when": "view == ftpBuddy.profiles && viewItem == remote.dir",
           "group": "1_new@2"
         },
         {
-          "command": "craftRemote.newFile",
-          "when": "view == craftRemote.profiles && viewItem == remote.file",
+          "command": "ftpBuddy.newFile",
+          "when": "view == ftpBuddy.profiles && viewItem == remote.file",
           "group": "1_new@1"
         },
         {
-          "command": "craftRemote.newFolder",
-          "when": "view == craftRemote.profiles && viewItem == remote.file",
+          "command": "ftpBuddy.newFolder",
+          "when": "view == ftpBuddy.profiles && viewItem == remote.file",
           "group": "1_new@2"
         },
         {
-          "command": "craftRemote.rename",
-          "when": "view == craftRemote.profiles && viewItem =~ /^remote\\./",
+          "command": "ftpBuddy.rename",
+          "when": "view == ftpBuddy.profiles && viewItem =~ /^remote\\./",
           "group": "2_edit@1"
         },
         {
-          "command": "craftRemote.delete",
-          "when": "view == craftRemote.profiles && viewItem =~ /^remote\\./",
+          "command": "ftpBuddy.delete",
+          "when": "view == ftpBuddy.profiles && viewItem =~ /^remote\\./",
           "group": "2_edit@2"
         },
         {
-          "command": "craftRemote.copyPath",
-          "when": "view == craftRemote.profiles && viewItem =~ /^remote\\./",
+          "command": "ftpBuddy.copyPath",
+          "when": "view == ftpBuddy.profiles && viewItem =~ /^remote\\./",
           "group": "3_path"
         },
         {
-          "command": "craftRemote.upload",
-          "when": "view == craftRemote.profiles && viewItem == remote.dir",
+          "command": "ftpBuddy.upload",
+          "when": "view == ftpBuddy.profiles && viewItem == remote.dir",
           "group": "inline@0"
         },
         {
-          "command": "craftRemote.upload",
-          "when": "view == craftRemote.profiles && viewItem == profile.connected",
+          "command": "ftpBuddy.upload",
+          "when": "view == ftpBuddy.profiles && viewItem == profile.connected",
           "group": "inline@0"
         },
         {
-          "command": "craftRemote.upload",
-          "when": "view == craftRemote.profiles && viewItem =~ /^remote\\./ || view == craftRemote.profiles && viewItem == profile.connected",
+          "command": "ftpBuddy.upload",
+          "when": "view == ftpBuddy.profiles && viewItem =~ /^remote\\./ || view == ftpBuddy.profiles && viewItem == profile.connected",
           "group": "0_transfer@1"
         },
         {
-          "command": "craftRemote.download",
-          "when": "view == craftRemote.profiles && viewItem =~ /^remote\\./",
+          "command": "ftpBuddy.download",
+          "when": "view == ftpBuddy.profiles && viewItem =~ /^remote\\./",
           "group": "0_transfer@2"
         },
         {
-          "command": "craftRemote.goUp",
-          "when": "view == craftRemote.profiles && viewItem == profile.connected",
+          "command": "ftpBuddy.goUp",
+          "when": "view == ftpBuddy.profiles && viewItem == profile.connected",
           "group": "inline@1"
         },
         {
-          "command": "craftRemote.goRoot",
-          "when": "view == craftRemote.profiles && viewItem == profile.connected",
+          "command": "ftpBuddy.goRoot",
+          "when": "view == ftpBuddy.profiles && viewItem == profile.connected",
           "group": "4_view@1"
         },
         {
-          "command": "craftRemote.goStart",
-          "when": "view == craftRemote.profiles && viewItem == profile.connected",
+          "command": "ftpBuddy.goStart",
+          "when": "view == ftpBuddy.profiles && viewItem == profile.connected",
           "group": "4_view@2"
         },
         {
-          "command": "craftRemote.setRoot",
-          "when": "view == craftRemote.profiles && viewItem == remote.dir",
+          "command": "ftpBuddy.setRoot",
+          "when": "view == ftpBuddy.profiles && viewItem == remote.dir",
           "group": "4_view@1"
         }
       ],
       "commandPalette": [
         {
-          "command": "craftRemote.newFile",
+          "command": "ftpBuddy.newFile",
           "when": "false"
         },
         {
-          "command": "craftRemote.newFolder",
+          "command": "ftpBuddy.newFolder",
           "when": "false"
         },
         {
-          "command": "craftRemote.rename",
+          "command": "ftpBuddy.rename",
           "when": "false"
         },
         {
-          "command": "craftRemote.delete",
+          "command": "ftpBuddy.delete",
           "when": "false"
         },
         {
-          "command": "craftRemote.copyPath",
+          "command": "ftpBuddy.copyPath",
           "when": "false"
         },
         {
-          "command": "craftRemote.upload",
+          "command": "ftpBuddy.upload",
           "when": "false"
         },
         {
-          "command": "craftRemote.download",
+          "command": "ftpBuddy.download",
           "when": "false"
         },
         {
-          "command": "craftRemote.uploadFromExplorer",
+          "command": "ftpBuddy.uploadFromExplorer",
           "when": "false"
         },
         {
-          "command": "craftRemote.goRoot",
+          "command": "ftpBuddy.goRoot",
           "when": "false"
         },
         {
-          "command": "craftRemote.goUp",
+          "command": "ftpBuddy.goUp",
           "when": "false"
         },
         {
-          "command": "craftRemote.goStart",
+          "command": "ftpBuddy.goStart",
           "when": "false"
         },
         {
-          "command": "craftRemote.setRoot",
+          "command": "ftpBuddy.setRoot",
           "when": "false"
         }
       ],
       "explorer/context": [
         {
-          "command": "craftRemote.uploadFromExplorer",
+          "command": "ftpBuddy.uploadFromExplorer",
           "when": "resourceScheme == file",
           "group": "7_modification@9"
         }

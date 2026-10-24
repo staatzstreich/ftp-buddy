@@ -5,12 +5,12 @@ import { RemoteFileSystem } from "./provider";
 import { ProfileNode, RemoteTree, registerFileCommands } from "./view";
 
 export function activate(context: vscode.ExtensionContext) {
-  const output = vscode.window.createOutputChannel("Craft Remote");
+  const output = vscode.window.createOutputChannel("FTP Buddy");
   const hostKeys = new StoredHostKeys(context.globalState, output);
   const conns = new Connections(context.secrets, hostKeys, output);
   const fs = new RemoteFileSystem(conns);
   const tree = new RemoteTree(conns, fs);
-  const treeView = vscode.window.createTreeView("craftRemote.profiles", { treeDataProvider: tree, canSelectMany: true });
+  const treeView = vscode.window.createTreeView("ftpBuddy.profiles", { treeDataProvider: tree, canSelectMany: true });
   context.subscriptions.push(
     output,
     vscode.workspace.registerFileSystemProvider(SCHEME, fs, { isCaseSensitive: true }),
@@ -18,25 +18,25 @@ export function activate(context: vscode.ExtensionContext) {
     treeView,
     tree,
     ...registerFileCommands(tree, conns, () => treeView.selection),
-    vscode.commands.registerCommand("craftRemote.connect", async (item?: ProfileNode) => {
+    vscode.commands.registerCommand("ftpBuddy.connect", async (item?: ProfileNode) => {
       const node = await connect(conns, output, item?.profile);
       if (node) await treeView.reveal(node, { expand: true, focus: false, select: false }).then(undefined, () => undefined);
     }),
-    vscode.commands.registerCommand("craftRemote.disconnect", (item?: ProfileNode) => disconnect(conns, item?.profile)),
-    vscode.commands.registerCommand("craftRemote.addProfile", addProfile),
-    vscode.commands.registerCommand("craftRemote.editProfiles", () =>
-      vscode.commands.executeCommand("workbench.action.openSettings", "craftRemote.profiles"),
+    vscode.commands.registerCommand("ftpBuddy.disconnect", (item?: ProfileNode) => disconnect(conns, item?.profile)),
+    vscode.commands.registerCommand("ftpBuddy.addProfile", addProfile),
+    vscode.commands.registerCommand("ftpBuddy.editProfiles", () =>
+      vscode.commands.executeCommand("workbench.action.openSettings", "ftpBuddy.profiles"),
     ),
-    vscode.commands.registerCommand("craftRemote.forgetPassword", async (item?: ProfileNode) => {
+    vscode.commands.registerCommand("ftpBuddy.forgetPassword", async (item?: ProfileNode) => {
       const p = item?.profile ?? (await pickProfile("Passwort vergessen für …"));
       if (p) await conns.forgetPassword(p.name);
     }),
-    vscode.commands.registerCommand("craftRemote.forgetHostKeys", async () => {
+    vscode.commands.registerCommand("ftpBuddy.forgetHostKeys", async () => {
       await hostKeys.forgetAll();
       vscode.window.showInformationMessage("Alle bekannten Server wurden vergessen.");
     }),
-    vscode.commands.registerCommand("craftRemote.showLog", () => output.show()),
-    vscode.commands.registerCommand("craftRemote.reconnect", () => conns.drop()),
+    vscode.commands.registerCommand("ftpBuddy.showLog", () => output.show()),
+    vscode.commands.registerCommand("ftpBuddy.reconnect", () => conns.drop()),
   );
 }
 
@@ -113,7 +113,7 @@ async function addProfile() {
   if (remotePath) profile.remotePath = remotePath;
   const localPath = await ask("Passender lokaler Ordner für Hoch- und Herunterladen (leer = keiner), z. B. ~/Developer/projekt");
   if (localPath) profile.localPath = localPath;
-  const cfg = vscode.workspace.getConfiguration("craftRemote");
+  const cfg = vscode.workspace.getConfiguration("ftpBuddy");
   await cfg.update("profiles", [...profiles(), profile], vscode.ConfigurationTarget.Global);
-  vscode.window.showInformationMessage(`Profil „${name}“ gespeichert. Befehl „Craft Remote: Mit Profil verbinden“ öffnet es.`);
+  vscode.window.showInformationMessage(`Profil „${name}“ gespeichert. Befehl „FTP Buddy: Mit Profil verbinden“ öffnet es.`);
 }

@@ -21,7 +21,7 @@ export class ProfileNode extends vscode.TreeItem {
     this.iconPath = connected
       ? new vscode.ThemeIcon("vm-active", new vscode.ThemeColor("charts.green"))
       : new vscode.ThemeIcon("vm-outline");
-    if (!connected) this.command = { command: "craftRemote.connect", title: "Verbinden", arguments: [this] };
+    if (!connected) this.command = { command: "ftpBuddy.connect", title: "Verbinden", arguments: [this] };
   }
 }
 
@@ -37,7 +37,7 @@ export class EntryNode extends vscode.TreeItem {
   readonly uri: vscode.Uri;
 }
 
-/** The "Craft Remote" side bar: profiles, and below a connected one its files and folders. */
+/** The "FTP Buddy" side bar: profiles, and below a connected one its files and folders. */
 export class RemoteTree implements vscode.TreeDataProvider<Node>, vscode.Disposable {
   private changed = new vscode.EventEmitter<Node | undefined>();
   readonly onDidChangeTreeData = this.changed.event;
@@ -51,7 +51,7 @@ export class RemoteTree implements vscode.TreeDataProvider<Node>, vscode.Disposa
         for (const name of [...this.viewRoots.keys()]) if (!conns.isOpen(name)) this.viewRoots.delete(name);
         this.refresh();
       }),
-      vscode.workspace.onDidChangeConfiguration((e) => e.affectsConfiguration("craftRemote") && this.refresh()),
+      vscode.workspace.onDidChangeConfiguration((e) => e.affectsConfiguration("ftpBuddy") && this.refresh()),
     ];
   }
 
@@ -258,20 +258,20 @@ export function registerFileCommands(tree: RemoteTree, conns: Connections, selec
   };
 
   const commands = [
-    vscode.commands.registerCommand("craftRemote.goRoot", (n: ProfileNode) => tree.setRoot(n.profile, "/")),
-    vscode.commands.registerCommand("craftRemote.goStart", (n: ProfileNode) => tree.setRoot(n.profile, undefined)),
-    vscode.commands.registerCommand("craftRemote.goUp", async (n: ProfileNode) => {
+    vscode.commands.registerCommand("ftpBuddy.goRoot", (n: ProfileNode) => tree.setRoot(n.profile, "/")),
+    vscode.commands.registerCommand("ftpBuddy.goStart", (n: ProfileNode) => tree.setRoot(n.profile, undefined)),
+    vscode.commands.registerCommand("ftpBuddy.goUp", async (n: ProfileNode) => {
       const now = await tree.rootOf(n.profile);
       if (now === "/") void vscode.window.showInformationMessage("Das ist schon die oberste Ebene.");
       else await tree.setRoot(n.profile, parentOf(now));
     }),
-    vscode.commands.registerCommand("craftRemote.setRoot", (n: EntryNode) => tree.setRoot(n.profile, n.path)),
-    vscode.commands.registerCommand("craftRemote.uploadFromExplorer", async (clicked?: vscode.Uri, all?: vscode.Uri[]) => {
+    vscode.commands.registerCommand("ftpBuddy.setRoot", (n: EntryNode) => tree.setRoot(n.profile, n.path)),
+    vscode.commands.registerCommand("ftpBuddy.uploadFromExplorer", async (clicked?: vscode.Uri, all?: vscode.Uri[]) => {
       const local = (all?.length ? all : clicked ? [clicked] : []).filter((u) => u.scheme === "file").map((u) => u.fsPath);
       if (!local.length) return;
       const open = profiles().filter((p) => conns.isOpen(p.name));
       if (!open.length) {
-        void vscode.window.showWarningMessage("Keine Verbindung offen. Erst in der Seitenleiste „Craft Remote“ verbinden.");
+        void vscode.window.showWarningMessage("Keine Verbindung offen. Erst in der Seitenleiste „FTP Buddy“ verbinden.");
         return;
       }
       // A profile whose local folder contains everything chosen decides by itself where the files go.
@@ -298,7 +298,7 @@ export function registerFileCommands(tree: RemoteTree, conns: Connections, selec
       const target = marked ? (marked.isDir ? marked.path : parentOf(marked.path)) : await tree.startPath(profile);
       await runUpload(profile, [{ paths: local, dir: target }]);
     }),
-    vscode.commands.registerCommand("craftRemote.upload", async (n: ProfileNode | EntryNode) => {
+    vscode.commands.registerCommand("ftpBuddy.upload", async (n: ProfileNode | EntryNode) => {
       const target = await targetDir(n);
       const picked = await vscode.window.showOpenDialog({
         canSelectFiles: true,
@@ -309,7 +309,7 @@ export function registerFileCommands(tree: RemoteTree, conns: Connections, selec
       });
       if (picked?.length) await runUpload(n.profile, [{ paths: picked.map((u) => u.fsPath), dir: target }]);
     }),
-    vscode.commands.registerCommand("craftRemote.download", async (n: EntryNode, all?: EntryNode[]) => {
+    vscode.commands.registerCommand("ftpBuddy.download", async (n: EntryNode, all?: EntryNode[]) => {
       const nodes = (all?.length ? all : [n]).filter((x): x is EntryNode => x instanceof EntryNode);
       // Entries inside the mapped folder go to the matching place; the rest to the workspace folder.
       const remoteRoot = n.profile.localPath ? await tree.startPath(n.profile) : undefined;
@@ -347,7 +347,7 @@ export function registerFileCommands(tree: RemoteTree, conns: Connections, selec
       );
       transferred("heruntergeladen", result);
     }),
-    vscode.commands.registerCommand("craftRemote.newFile", async (n: EntryNode) => {
+    vscode.commands.registerCommand("ftpBuddy.newFile", async (n: EntryNode) => {
       const f = await name("Name der neuen Datei");
       if (!f) return;
       const uri = uriFor(n.profile, join(dirOf(n), f.trim()));
@@ -356,17 +356,17 @@ export function registerFileCommands(tree: RemoteTree, conns: Connections, selec
         await vscode.commands.executeCommand("vscode.open", uri);
       });
     }),
-    vscode.commands.registerCommand("craftRemote.newFolder", async (n: EntryNode) => {
+    vscode.commands.registerCommand("ftpBuddy.newFolder", async (n: EntryNode) => {
       const f = await name("Name des neuen Ordners");
       if (f) await run("Anlegen", () => vscode.workspace.fs.createDirectory(uriFor(n.profile, join(dirOf(n), f.trim()))));
     }),
-    vscode.commands.registerCommand("craftRemote.rename", async (n: EntryNode) => {
+    vscode.commands.registerCommand("ftpBuddy.rename", async (n: EntryNode) => {
       const f = await name("Neuer Name", baseName(n.path));
       if (f && f.trim() !== baseName(n.path)) {
         await run("Umbenennen", () => vscode.workspace.fs.rename(uriOf(n), uriFor(n.profile, join(parentOf(n.path), f.trim()))));
       }
     }),
-    vscode.commands.registerCommand("craftRemote.delete", async (n: EntryNode) => {
+    vscode.commands.registerCommand("ftpBuddy.delete", async (n: EntryNode) => {
       const ok = await vscode.window.showWarningMessage(
         `„${baseName(n.path)}“ auf dem Server löschen?`,
         { modal: true, detail: n.isDir ? "Der Ordner wird mit allem Inhalt gelöscht. Das lässt sich nicht rückgängig machen." : "Das lässt sich nicht rückgängig machen." },
@@ -374,8 +374,8 @@ export function registerFileCommands(tree: RemoteTree, conns: Connections, selec
       );
       if (ok === "Löschen") await run("Löschen", () => vscode.workspace.fs.delete(uriOf(n), { recursive: true }));
     }),
-    vscode.commands.registerCommand("craftRemote.copyPath", (n: EntryNode) => vscode.env.clipboard.writeText(n.path)),
-    vscode.commands.registerCommand("craftRemote.refresh", () => tree.refresh()),
+    vscode.commands.registerCommand("ftpBuddy.copyPath", (n: EntryNode) => vscode.env.clipboard.writeText(n.path)),
+    vscode.commands.registerCommand("ftpBuddy.refresh", () => tree.refresh()),
   ];
   return commands;
 }

@@ -1,11 +1,11 @@
-# Craft Remote
+# FTP Buddy
 
 VS Code-Erweiterung (Prototyp): SFTP-, FTP- und FTPS-Ordner erscheinen direkt im Explorer, ohne lokale Kopie.
 Dateien werden beim Öffnen vom Server gelesen und beim Speichern direkt dorthin geschrieben.
 
 ## Benutzen
 
-In der Seitenleiste gibt es ein Feld **Craft Remote** (Server-Symbol) mit allen Profilen. Ein grüner Punkt zeigt eine bestehende
+In der Seitenleiste gibt es ein Feld **FTP Buddy** (Server-Symbol) mit allen Profilen. Ein grüner Punkt zeigt eine bestehende
 Verbindung. Pro Profil gibt es **Verbinden** (Stecker, auch per Klick auf die Zeile) und **Trennen**. Ein verbundenes Profil klappt
 auf: darunter stehen Ordner und Dateien des Servers. Ein Klick auf eine Datei öffnet sie in einem normalen Tab, **Speichern**
 schreibt direkt auf den Server. Es gibt keinen Explorer-Ordner, keinen Workspace und kein zusätzliches Fenster.
@@ -23,7 +23,7 @@ Der Zuordnungs-Ordner selbst überträgt seinen Inhalt, nicht eine Kopie seines 
 ```
 
 **Hochladen aus dem VS Code-Explorer:** Dateien oder Ordner im Explorer markieren (auch mehrere), Rechtsklick →
-**Zu Craft Remote hochladen**. Ziel ist der Ordner, den du im Baum **Craft Remote** markiert hast; ist dort nichts markiert, der
+**Zu FTP Buddy hochladen**. Ziel ist der Ordner, den du im Baum **FTP Buddy** markiert hast; ist dort nichts markiert, der
 Startordner des Servers. Sind mehrere Server verbunden, fragt VS Code, welcher. Der Fortschritt nennt das Ziel.
 
 **Herunterladen:** im Baum Datei(en) oder Ordner markieren, Rechtsklick → **Herunterladen**. Sie landen im Ordner deines Workspaces
@@ -47,9 +47,9 @@ nächsten Zugriff neu aufgebaut). Geöffnete Dateien bleiben nach dem Trennen in
 
 Die Einrichtung:
 
-1. Befehlspalette (⇧⌘P) → **Craft Remote: Profil anlegen …** (Name, Protokoll, Server, Port, Benutzer, Schlüssel, Startordner).
-   Profile stehen danach in den Einstellungen unter `craftRemote.profiles`.
-2. Im Feld **Craft Remote** auf das Profil klicken.
+1. Befehlspalette (⇧⌘P) → **FTP Buddy: Profil anlegen …** (Name, Protokoll, Server, Port, Benutzer, Schlüssel, Startordner).
+   Profile stehen danach in den Einstellungen unter `ftpBuddy.profiles`.
+2. Im Feld **FTP Buddy** auf das Profil klicken.
 3. Das Passwort wird beim ersten Verbinden gefragt und im Schlüsselbund (VS Code `SecretStorage`) gespeichert.
 
 Beim ersten Kontakt mit einem SFTP-Server zeigt ein Dialog den Fingerabdruck (Trust on first use). Ändert er sich später,
@@ -57,17 +57,17 @@ wird die Verbindung abgelehnt. **Bekannte Server vergessen** setzt das zurück.
 
 | Befehl | Wirkung |
 |---|---|
-| Craft Remote: Mit Profil verbinden … | Profil wählen, Ordner im Explorer öffnen |
-| Craft Remote: Profil anlegen … | Eingabefolge, speichert in den Einstellungen |
-| Craft Remote: Profile bearbeiten | Öffnet die Einstellung `craftRemote.profiles` |
-| Craft Remote: Gespeichertes Passwort vergessen … | Passwort aus dem Schlüsselbund löschen |
-| Craft Remote: Bekannte Server vergessen | SFTP-Fingerabdrücke löschen |
-| Craft Remote: Verbindung neu aufbauen | Alle Verbindungen schließen, beim nächsten Zugriff neu öffnen |
+| FTP Buddy: Mit Profil verbinden … | Profil wählen, Ordner im Explorer öffnen |
+| FTP Buddy: Profil anlegen … | Eingabefolge, speichert in den Einstellungen |
+| FTP Buddy: Profile bearbeiten | Öffnet die Einstellung `ftpBuddy.profiles` |
+| FTP Buddy: Gespeichertes Passwort vergessen … | Passwort aus dem Schlüsselbund löschen |
+| FTP Buddy: Bekannte Server vergessen | SFTP-Fingerabdrücke löschen |
+| FTP Buddy: Verbindung neu aufbauen | Alle Verbindungen schließen, beim nächsten Zugriff neu öffnen |
 
 Beispielprofil:
 
 ```json
-"craftRemote.profiles": [
+"ftpBuddy.profiles": [
   { "name": "Kunde Müller", "protocol": "ftps", "host": "ftp.example.com", "username": "web123", "remotePath": "/htdocs" },
   { "name": "Server", "protocol": "sftp", "host": "example.org", "username": "michael", "privateKeyPath": "~/.ssh/id_ed25519" }
 ]
@@ -90,8 +90,8 @@ npm install
 npm test            # FTP (ftp-srv) und SFTP (lokaler sshd) gegen dieselben Vertragstests
 npm run typecheck
 npm run build       # out/extension.js
-npm run package     # craft-remote-0.7.0.vsix
-code --install-extension craft-remote-0.7.0.vsix
+npm run package     # ftp-buddy-0.8.0.vsix
+code --install-extension ftp-buddy-0.8.0.vsix
 ```
 
 Zum Ausprobieren ohne Installation: Ordner in VS Code öffnen und F5 (Extension Development Host).
