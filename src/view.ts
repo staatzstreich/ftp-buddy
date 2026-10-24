@@ -10,11 +10,12 @@ import { dirname, join as joinLocal, resolve } from "node:path";
 export type Node = ProfileNode | EntryNode;
 
 export class ProfileNode extends vscode.TreeItem {
-  constructor(readonly profile: Profile, readonly connected: boolean) {
+  constructor(readonly profile: Profile, readonly connected: boolean, viewRoot?: string) {
     super(profile.name, connected ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
     const user = profile.username ? profile.username + "@" : "";
     this.id = `profile:${profile.name}`;
     this.description = `${profile.protocol}://${user}${profile.host}:${profile.port ?? defaultPort(profile)}`;
+    if (viewRoot) this.description += ` · zeigt ${viewRoot}`;
     this.tooltip = connected ? "Verbunden" : "Nicht verbunden (Klick verbindet)";
     this.contextValue = connected ? "profile.connected" : "profile.disconnected";
     this.iconPath = connected
@@ -47,6 +48,7 @@ export class RemoteTree implements vscode.TreeDataProvider<Node>, vscode.Disposa
       this.changed,
       conns.onDidChange(() => {
         for (const name of [...this.starts.keys()]) if (!conns.isOpen(name)) this.starts.delete(name);
+        for (const name of [...this.viewRoots.keys()]) if (!conns.isOpen(name)) this.viewRoots.delete(name);
         this.refresh();
       }),
       vscode.workspace.onDidChangeConfiguration((e) => e.affectsConfiguration("craftRemote") && this.refresh()),
@@ -67,9 +69,33 @@ export class RemoteTree implements vscode.TreeDataProvider<Node>, vscode.Disposa
   }
 
   async getChildren(node?: Node): Promise<Node[]> {
-    if (!node) return profiles().map((p) => new ProfileNode(p, this.conns.isOpen(p.name)));
-    if (node instanceof ProfileNode) return this.list(node.profile, await this.startPath(node.profile));
+    if (!node) return profiles().map((p) => new ProfileNode(p, this.conns.isOpen(p.name), this.conns.isOpen(p.name) ? this.viewRoots.get(p.name) : undefined));
+    if (node instanceof ProfileNode) return this.list(node.profile, await this.rootOf(node.profile));
     return node.isDir ? this.list(node.profile, node.path) : [];
+  }
+
+  /** A folder the user chose to show instead of the start folder. */
+  private viewRoots = new Map<string, string>();
+
+  /** The folder shown at the top of a profile: the chosen one, else the start folder. */
+  async rootOf(p: Profile): Promise<string> {
+    return this.viewRoots.get(p.name) ?? this.startPath(p);
+  }
+
+  /** Shows `path` (or the start folder, for `undefined`) at the top; a folder that cannot be read is refused. */
+  async setRoot(p: Profile, path: string | undefined): Promise<void> {
+    if (path !== undefined) {
+      try {
+        await this.fs.readDirectory(uriFor(p, path));
+      } catch (e) {
+        void vscode.window.showErrorMessage(`${path} lässt sich nicht öffnen: ${e instanceof Error ? e.message : e}`);
+        return;
+      }
+      this.viewRoots.set(p.name, path);
+    } else {
+      this.viewRoots.delete(p.name);
+    }
+    this.refresh();
   }
 
   /** Where a profile's tree starts; asked once per connection. */
@@ -232,6 +258,14 @@ export function registerFileCommands(tree: RemoteTree, conns: Connections, selec
   };
 
   const commands = [
+    vscode.commands.registerCommand("craftRemote.goRoot", (n: ProfileNode) => tree.setRoot(n.profile, "/")),
+    vscode.commands.registerCommand("craftRemote.goStart", (n: ProfileNode) => tree.setRoot(n.profile, undefined)),
+    vscode.commands.registerCommand("craftRemote.goUp", async (n: ProfileNode) => {
+      const now = await tree.rootOf(n.profile);
+      if (now === "/") void vscode.window.showInformationMessage("Das ist schon die oberste Ebene.");
+      else await tree.setRoot(n.profile, parentOf(now));
+    }),
+    vscode.commands.registerCommand("craftRemote.setRoot", (n: EntryNode) => tree.setRoot(n.profile, n.path)),
     vscode.commands.registerCommand("craftRemote.uploadFromExplorer", async (clicked?: vscode.Uri, all?: vscode.Uri[]) => {
       const local = (all?.length ? all : clicked ? [clicked] : []).filter((u) => u.scheme === "file").map((u) => u.fsPath);
       if (!local.length) return;

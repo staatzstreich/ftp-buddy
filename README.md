@@ -37,6 +37,11 @@ symbolische Links werden beim Hochladen übersprungen.
 
 Oben im Feld: Aktualisieren, Profil anlegen, Einstellungen, Zeitmessung. Rechtsklick auf ein Profil: gespeichertes Passwort vergessen.
 
+**Andere Ebene anzeigen:** Der Baum beginnt im Startordner des Profils. Am verbundenen Profil gibt es den Pfeil **Eine Ebene höher**
+(Symbol in der Zeile) und im Rechtsklick-Menü **Wurzelverzeichnis / anzeigen** und **Zum Startordner**; auf einem Ordner
+**Hier als oberste Ebene anzeigen**. Das Profil zeigt dann „· zeigt /pfad“ an. Das ändert nur die Ansicht: die Ordner-Zuordnung
+(`localPath`) bleibt am Startordner. Darf der Server den Ordner nicht auflisten, bleibt die Ansicht, wie sie war.
+
 Eine Verbindung endet beim Trennen, beim Schließen oder Neuladen des Fensters und wenn der Server sie beendet (sie wird beim
 nächsten Zugriff neu aufgebaut). Geöffnete Dateien bleiben nach dem Trennen in ihren Tabs.
 
@@ -85,8 +90,8 @@ npm install
 npm test            # FTP (ftp-srv) und SFTP (lokaler sshd) gegen dieselben Vertragstests
 npm run typecheck
 npm run build       # out/extension.js
-npm run package     # craft-remote-0.6.0.vsix
-code --install-extension craft-remote-0.6.0.vsix
+npm run package     # craft-remote-0.7.0.vsix
+code --install-extension craft-remote-0.7.0.vsix
 ```
 
 Zum Ausprobieren ohne Installation: Ordner in VS Code öffnen und F5 (Extension Development Host).

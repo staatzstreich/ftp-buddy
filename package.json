@@ -2,7 +2,7 @@
   "name": "craft-remote",
   "displayName": "Craft Remote",
   "description": "Open SFTP and FTP/FTPS folders directly in the Explorer, no local copy.",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publisher": "staatzstreich",
   "license": "MIT",
   "private": true,
@@ -113,6 +113,29 @@
       {
         "command": "craftRemote.uploadFromExplorer",
         "title": "Zu Craft Remote hochladen",
+        "category": "Craft Remote"
+      },
+      {
+        "command": "craftRemote.goRoot",
+        "title": "Wurzelverzeichnis / anzeigen",
+        "category": "Craft Remote",
+        "icon": "$(root-folder)"
+      },
+      {
+        "command": "craftRemote.goUp",
+        "title": "Eine Ebene höher",
+        "category": "Craft Remote",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "craftRemote.goStart",
+        "title": "Zum Startordner",
+        "category": "Craft Remote",
+        "icon": "$(home)"
+      },
+      {
+        "command": "craftRemote.setRoot",
+        "title": "Hier als oberste Ebene anzeigen",
         "category": "Craft Remote"
       }
     ],
@@ -297,6 +320,26 @@
           "command": "craftRemote.download",
           "when": "view == craftRemote.profiles && viewItem =~ /^remote\\./",
           "group": "0_transfer@2"
+        },
+        {
+          "command": "craftRemote.goUp",
+          "when": "view == craftRemote.profiles && viewItem == profile.connected",
+          "group": "inline@1"
+        },
+        {
+          "command": "craftRemote.goRoot",
+          "when": "view == craftRemote.profiles && viewItem == profile.connected",
+          "group": "4_view@1"
+        },
+        {
+          "command": "craftRemote.goStart",
+          "when": "view == craftRemote.profiles && viewItem == profile.connected",
+          "group": "4_view@2"
+        },
+        {
+          "command": "craftRemote.setRoot",
+          "when": "view == craftRemote.profiles && viewItem == remote.dir",
+          "group": "4_view@1"
         }
       ],
       "commandPalette": [
@@ -330,6 +373,22 @@
         },
         {
           "command": "craftRemote.uploadFromExplorer",
+          "when": "false"
+        },
+        {
+          "command": "craftRemote.goRoot",
+          "when": "false"
+        },
+        {
+          "command": "craftRemote.goUp",
+          "when": "false"
+        },
+        {
+          "command": "craftRemote.goStart",
+          "when": "false"
+        },
+        {
+          "command": "craftRemote.setRoot",
           "when": "false"
         }
       ],
