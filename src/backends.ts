@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { Backend, HostKeys, Profile, timed } from "./backend";
+import { Backend, HostKeys, Profile, once, timed } from "./backend";
 import { FtpBackend } from "./ftp";
 import { SftpBackend } from "./sftp";
 
@@ -49,7 +49,7 @@ export class StoredHostKeys implements HostKeys {
 
 /** One live connection per profile, created on first use. */
 export class Connections {
-  private open = new Map<string, Backend>();
+  private open = new Map<string, Promise<Backend>>();
 
   constructor(private secrets: vscode.SecretStorage, private hostKeys: HostKeys, private output: vscode.OutputChannel) {}
 
@@ -82,15 +82,13 @@ export class Connections {
     return typed;
   }
 
-  async get(authority: string): Promise<Backend> {
+  get(authority: string): Promise<Backend> {
     const p = this.profileOf(authority);
-    const have = this.open.get(p.name);
-    if (have) return have;
-    const password = await this.password(p);
-    const raw = p.protocol === "sftp" ? new SftpBackend(p, password, this.hostKeys) : new FtpBackend(p, password);
-    const backend = timed(raw, (line) => this.output.appendLine(`[${p.name}] ${line}`));
-    this.open.set(p.name, backend);
-    return backend;
+    return once(this.open, p.name, async () => {
+      const password = await this.password(p);
+      const raw = p.protocol === "sftp" ? new SftpBackend(p, password, this.hostKeys) : new FtpBackend(p, password);
+      return timed(raw, (line) => this.output.appendLine(`[${p.name}] ${line}`));
+    });
   }
 
   async forgetPassword(name: string): Promise<void> {
@@ -101,7 +99,7 @@ export class Connections {
   async drop(name?: string): Promise<void> {
     const names = name ? [name] : [...this.open.keys()];
     for (const n of names) {
-      const b = this.open.get(n);
+      const b = await this.open.get(n)?.catch(() => undefined);
       this.open.delete(n);
       await b?.close();
     }

@@ -81,3 +81,19 @@ export function timed(inner: Backend, log: (line: string) => void): Backend {
     close: () => inner.close(),
   };
 }
+
+/**
+ * The value for `key`, created once even when many callers ask at the same time (VS Code sends a
+ * dozen requests in a burst before the first connection exists). A failed creation is forgotten,
+ * so the next call tries again.
+ */
+export function once<K, V>(cache: Map<K, Promise<V>>, key: K, create: () => Promise<V>): Promise<V> {
+  const have = cache.get(key);
+  if (have) return have;
+  const made = create().catch((e) => {
+    cache.delete(key);
+    throw e;
+  });
+  cache.set(key, made);
+  return made;
+}
