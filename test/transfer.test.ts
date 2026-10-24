@@ -158,3 +158,19 @@ test("transfer over sftp: folders and files go up and come back unchanged", { sk
     await b.close();
   }
 });
+
+test("transfer: a download creates the missing folders of its target", async () => {
+  const b = new FtpBackend({ name: "t", protocol: "ftp", host: "127.0.0.1", port: ftpPort, username: "u" }, "p");
+  try {
+    await b.write("/mapped.txt", Buffer.from("x"));
+    const root = mkdtempSync(join(tmpdir(), "craft-tr-map-"));
+    cleanup.push(root);
+    const dir = join(root, "neu", "tief");
+    const res = await download(b, [{ path: "/mapped.txt", isDir: false }], dir, hooks());
+    assert.equal(res.done, 1);
+    assert.equal(readFileSync(join(dir, "mapped.txt"), "utf8"), "x");
+    await b.remove("/mapped.txt", false);
+  } finally {
+    await b.close();
+  }
+});

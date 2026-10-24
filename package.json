@@ -2,7 +2,7 @@
   "name": "craft-remote",
   "displayName": "Craft Remote",
   "description": "Open SFTP and FTP/FTPS folders directly in the Explorer, no local copy.",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "staatzstreich",
   "license": "MIT",
   "private": true,
@@ -161,6 +161,10 @@
               "remotePath": {
                 "type": "string",
                 "description": "Startordner; leer = Home bzw. Login-Verzeichnis"
+              },
+              "localPath": {
+                "type": "string",
+                "description": "Lokaler Ordner, der dem Startordner (remotePath, sonst Home) entspricht. Hoch- und Herunterladen behalten dann die Ordnerstruktur."
               }
             }
           }

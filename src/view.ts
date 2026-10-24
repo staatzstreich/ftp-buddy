@@ -2,7 +2,10 @@ import * as vscode from "vscode";
 import { Profile, defaultPort, baseName, parentOf } from "./backend";
 import { Connections, profiles, uriFor } from "./backends";
 import { RemoteFileSystem } from "./provider";
-import { Decision, download, upload } from "./transfer";
+import { Decision, Result, download, upload } from "./transfer";
+import { expandHome, toLocal, toRemote } from "./mapping";
+import { readdirSync } from "node:fs";
+import { dirname, join as joinLocal, resolve } from "node:path";
 
 export type Node = ProfileNode | EntryNode;
 
@@ -100,6 +103,7 @@ export class RemoteTree implements vscode.TreeDataProvider<Node>, vscode.Disposa
 }
 
 const uriOf = (n: EntryNode) => n.uri;
+const resolveLocal = (p: string) => resolve(expandHome(p));
 
 /** New file, new folder, rename and delete on a node of the tree. */
 export function registerFileCommands(tree: RemoteTree, conns: Connections, selection: () => readonly Node[]): vscode.Disposable[] {
@@ -173,25 +177,58 @@ export function registerFileCommands(tree: RemoteTree, conns: Connections, selec
     return dest?.[0]?.fsPath;
   };
 
-  const uploadTo = async (profile: Profile, target: string, paths: string[]) => {
+  interface UploadJob {
+    paths: string[];
+    dir: string;
+  }
+
+  const merge = (into: Result, r: Result) => {
+    into.done += r.done;
+    into.skipped += r.skipped;
+    into.failed.push(...r.failed);
+    into.cancelled ||= r.cancelled;
+  };
+
+  const runUpload = async (profile: Profile, jobs: UploadJob[]) => {
     const policy = conflictPolicy();
+    const where = jobs.length === 1 ? `${profile.name}:${jobs[0]?.dir}` : profile.name;
     const result = await vscode.window.withProgress(
-      { location: vscode.ProgressLocation.Notification, title: `Hochladen nach ${profile.name}:${target}`, cancellable: true },
+      { location: vscode.ProgressLocation.Notification, title: `Hochladen nach ${where}`, cancellable: true },
       async (progress, token) => {
-        let last = 0;
-        return upload(await conns.get(encodeURIComponent(profile.name)), paths, target, {
-          exists: policy,
-          cancelled: () => token.isCancellationRequested,
-          progress: (done, total, name) => {
-            if (!total) return;
-            progress.report({ increment: ((done - last) / total) * 100, message: `${done} von ${total}: ${name}` });
-            last = done;
-          },
-        });
+        const b = await conns.get(encodeURIComponent(profile.name));
+        const all: Result = { done: 0, skipped: 0, failed: [], cancelled: false };
+        for (const job of jobs) {
+          merge(all, await upload(b, job.paths, job.dir, {
+            exists: policy,
+            cancelled: () => token.isCancellationRequested,
+            progress: (done, total, name) => name && progress.report({ message: `${done} von ${total}: ${name}` }),
+          }));
+          if (all.cancelled) break;
+        }
+        return all;
       },
     );
     transferred("hochgeladen", result);
     tree.refresh();
+  };
+
+  /** Upload jobs from the profile's folder mapping; `undefined` when something lies outside it. */
+  const mappedUploads = async (p: Profile, local: string[]): Promise<UploadJob[] | undefined> => {
+    if (!p.localPath) return undefined;
+    const remoteRoot = await tree.startPath(p);
+    const byDir = new Map<string, string[]>();
+    const add = (dir: string, path: string) => byDir.set(dir, [...(byDir.get(dir) ?? []), path]);
+    for (const l of local) {
+      const remote = toRemote(p.localPath, remoteRoot, l);
+      if (remote === undefined) return undefined;
+      if (remote === remoteRoot) {
+        // The mapped folder itself: its contents go into the remote folder, not a copy of its name.
+        for (const child of readdirSync(l)) add(remoteRoot, joinLocal(l, child));
+      } else {
+        add(parentOf(remote), l);
+      }
+    }
+    return [...byDir].map(([dir, paths]) => ({ dir, paths }));
   };
 
   const commands = [
@@ -203,15 +240,29 @@ export function registerFileCommands(tree: RemoteTree, conns: Connections, selec
         void vscode.window.showWarningMessage("Keine Verbindung offen. Erst in der Seitenleiste „Craft Remote“ verbinden.");
         return;
       }
+      // A profile whose local folder contains everything chosen decides by itself where the files go.
+      const mapped: { p: Profile; jobs: UploadJob[] }[] = [];
+      for (const p of open) {
+        const jobs = await mappedUploads(p, local);
+        if (jobs) mapped.push({ p, jobs });
+      }
+      if (mapped.length) {
+        const pick =
+          mapped.length === 1
+            ? mapped[0]
+            : (await vscode.window.showQuickPick(mapped.map((m) => ({ label: m.p.name, m })), { placeHolder: "Auf welchen Server hochladen?" }))?.m;
+        if (pick) await runUpload(pick.p, pick.jobs);
+        return;
+      }
       const profile =
         open.length === 1
           ? open[0]
           : (await vscode.window.showQuickPick(open.map((p) => ({ label: p.name, p })), { placeHolder: "Auf welchen Server hochladen?" }))?.p;
       if (!profile) return;
-      // The folder marked in the Craft Remote tree, if it is on this server; otherwise the start folder.
+      // No mapping applies: the folder marked in the tree, if it is on this server, else the start folder.
       const marked = selection().find((n): n is EntryNode => n instanceof EntryNode && n.profile.name === profile.name);
       const target = marked ? (marked.isDir ? marked.path : parentOf(marked.path)) : await tree.startPath(profile);
-      await uploadTo(profile, target, local);
+      await runUpload(profile, [{ paths: local, dir: target }]);
     }),
     vscode.commands.registerCommand("craftRemote.upload", async (n: ProfileNode | EntryNode) => {
       const target = await targetDir(n);
@@ -222,21 +273,43 @@ export function registerFileCommands(tree: RemoteTree, conns: Connections, selec
         openLabel: "Hochladen",
         title: `Hochladen nach ${target}`,
       });
-      if (picked?.length) await uploadTo(n.profile, target, picked.map((u) => u.fsPath));
+      if (picked?.length) await runUpload(n.profile, [{ paths: picked.map((u) => u.fsPath), dir: target }]);
     }),
     vscode.commands.registerCommand("craftRemote.download", async (n: EntryNode, all?: EntryNode[]) => {
       const nodes = (all?.length ? all : [n]).filter((x): x is EntryNode => x instanceof EntryNode);
-      const folder = await downloadTarget(nodes);
-      if (!folder) return;
+      // Entries inside the mapped folder go to the matching place; the rest to the workspace folder.
+      const remoteRoot = n.profile.localPath ? await tree.startPath(n.profile) : undefined;
+      const localRoot = n.profile.localPath ? resolveLocal(n.profile.localPath) : undefined;
+      const mapped: { node: EntryNode; dir: string }[] = [];
+      const rest: EntryNode[] = [];
+      for (const x of nodes) {
+        const local = remoteRoot && n.profile.localPath ? toLocal(n.profile.localPath, remoteRoot, x.path) : undefined;
+        if (local && local !== localRoot) mapped.push({ node: x, dir: dirname(local) });
+        else rest.push(x);
+      }
+      let folder: string | undefined;
+      if (rest.length) {
+        folder = await downloadTarget(rest);
+        if (!folder) return;
+      }
       const policy = conflictPolicy();
       const result = await vscode.window.withProgress(
         { location: vscode.ProgressLocation.Notification, title: `Herunterladen von ${n.profile.name}`, cancellable: true },
-        async (progress, token) =>
-          download(await backendOf(n), nodes.map((x) => ({ path: x.path, isDir: x.isDir })), folder, {
+        async (progress, token) => {
+          const b = await backendOf(n);
+          const all: Result = { done: 0, skipped: 0, failed: [], cancelled: false };
+          const hooks = {
             exists: policy,
             cancelled: () => token.isCancellationRequested,
-            progress: (done, _total, name) => progress.report({ message: `${done} Dateien fertig, jetzt ${name}` }),
-          }),
+            progress: (done: number, _t: number | undefined, name: string) => progress.report({ message: `${done} Dateien fertig, jetzt ${name}` }),
+          };
+          for (const m of mapped) {
+            merge(all, await download(b, [{ path: m.node.path, isDir: m.node.isDir }], m.dir, hooks));
+            if (all.cancelled) return all;
+          }
+          if (folder) merge(all, await download(b, rest.map((x) => ({ path: x.path, isDir: x.isDir })), folder, hooks));
+          return all;
+        },
       );
       transferred("heruntergeladen", result);
     }),

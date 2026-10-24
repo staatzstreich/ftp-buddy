@@ -126,6 +126,7 @@ export async function download(b: Backend, items: { path: string; isDir: boolean
     return true;
   };
 
+  await fsp.mkdir(localDir, { recursive: true });
   for (const it of items) {
     const name = it.path.slice(it.path.lastIndexOf("/") + 1);
     const go = it.isDir ? await tree(it.path, join(localDir, name), name) : await one(it.path, join(localDir, name), name);

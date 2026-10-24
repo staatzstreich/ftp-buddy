@@ -26,6 +26,8 @@ export interface Profile {
   username?: string;
   privateKeyPath?: string;
   remotePath?: string;
+  /** The local folder that matches `remotePath` (or the login folder): uploads and downloads keep the structure. */
+  localPath?: string;
 }
 
 export interface Backend {

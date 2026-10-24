@@ -109,8 +109,10 @@ async function addProfile() {
     const key = await ask("Schlüsseldatei (leer = Passwort), z. B. ~/.ssh/id_ed25519");
     if (key) profile.privateKeyPath = key;
   }
-  const remotePath = await ask("Startordner (leer = Home)");
+  const remotePath = await ask("Startordner auf dem Server (leer = Home)");
   if (remotePath) profile.remotePath = remotePath;
+  const localPath = await ask("Passender lokaler Ordner für Hoch- und Herunterladen (leer = keiner), z. B. ~/Developer/projekt");
+  if (localPath) profile.localPath = localPath;
   const cfg = vscode.workspace.getConfiguration("craftRemote");
   await cfg.update("profiles", [...profiles(), profile], vscode.ConfigurationTarget.Global);
   vscode.window.showInformationMessage(`Profil „${name}“ gespeichert. Befehl „Craft Remote: Mit Profil verbinden“ öffnet es.`);
