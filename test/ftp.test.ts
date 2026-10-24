@@ -60,3 +60,20 @@ test("ftp: a wrong password is reported, not retried forever", async () => {
   await assert.rejects(b.home());
   await b.close();
 });
+
+test("ftp: a burst of stat calls works and a write is visible to the next stat", async () => {
+  const b = backend();
+  try {
+    await b.write("/burst-a.txt", Buffer.from("a"));
+    const sizes = await Promise.all(Array.from({ length: 20 }, () => b.stat("/burst-a.txt")));
+    assert.ok(sizes.every((e) => e?.size === 1));
+    assert.equal(await b.stat("/burst-b.txt"), undefined);
+    await b.write("/burst-b.txt", Buffer.from("bb"));
+    assert.equal((await b.stat("/burst-b.txt"))?.size, 2);
+    await b.remove("/burst-a.txt", false);
+    await b.remove("/burst-b.txt", false);
+    assert.equal(await b.stat("/burst-a.txt", true), undefined);
+  } finally {
+    await b.close();
+  }
+});

@@ -48,8 +48,8 @@ npm install
 npm test            # FTP (ftp-srv) und SFTP (lokaler sshd) gegen dieselben Vertragstests
 npm run typecheck
 npm run build       # out/extension.js
-npm run package     # craft-remote-0.1.0.vsix
-code --install-extension craft-remote-0.1.0.vsix
+npm run package     # craft-remote-0.1.1.vsix
+code --install-extension craft-remote-0.1.1.vsix
 ```
 
 Zum Ausprobieren ohne Installation: Ordner in VS Code öffnen und F5 (Extension Development Host).

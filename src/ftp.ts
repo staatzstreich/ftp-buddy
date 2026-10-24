@@ -19,14 +19,18 @@ function toEntry(i: FileInfo): Entry {
   };
 }
 
-/** How long a listing may be reused; VS Code asks for the same folder many times in a row. */
+/** How long a listing may be reused for a folder view; VS Code asks for the same folder many times in a row. */
 const LIST_TTL_MS = 2000;
+/** How long a listing may answer "does this file exist, how big is it": the questions come in bursts. */
+const STAT_TTL_MS = 30000;
 
 export class FtpBackend implements Backend {
   private client: Client | undefined;
   /** FTP does one thing at a time per connection, so every operation waits for the one before. */
   private tail: Promise<unknown> = Promise.resolve();
   private cache = new Map<string, { at: number; entries: Entry[] }>();
+  /** Listings under way, so parallel requests for one folder share a single LIST. */
+  private pending = new Map<string, Promise<Entry[]>>();
 
   constructor(private profile: Profile, private password: string | undefined) {}
 
@@ -67,21 +71,25 @@ export class FtpBackend implements Backend {
     return this.enqueue("~", (c) => c.pwd());
   }
 
-  list(path: string): Promise<Entry[]> {
+  list(path: string, maxAge = LIST_TTL_MS): Promise<Entry[]> {
     const hit = this.cache.get(path);
-    if (hit && Date.now() - hit.at < LIST_TTL_MS) return Promise.resolve(hit.entries);
-    return this.enqueue(path, async (c) => {
+    if (hit && Date.now() - hit.at < maxAge) return Promise.resolve(hit.entries);
+    const running = this.pending.get(path);
+    if (running) return running;
+    const job = this.enqueue(path, async (c) => {
       const entries = (await c.list(path)).map(toEntry);
       this.cache.set(path, { at: Date.now(), entries });
       return entries;
-    });
+    }).finally(() => this.pending.delete(path));
+    this.pending.set(path, job);
+    return job;
   }
 
-  async stat(path: string): Promise<Entry | undefined> {
+  async stat(path: string, fresh = false): Promise<Entry | undefined> {
     if (path === "/" || path === "") return { name: "", kind: "dir", size: 0, mtime: 0 };
     let entries: Entry[];
     try {
-      entries = await this.list(parentOf(path));
+      entries = await this.list(parentOf(path), fresh ? 0 : STAT_TTL_MS);
     } catch (e) {
       if (e instanceof RemoteError && e.code === "NotFound") return undefined;
       throw e;

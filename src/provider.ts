@@ -77,7 +77,7 @@ export class RemoteFileSystem implements vscode.FileSystemProvider {
 
   writeFile(uri: vscode.Uri, content: Uint8Array, opts: { create: boolean; overwrite: boolean }): Promise<void> {
     return this.with(uri, async (b, path) => {
-      const existing = await b.stat(path);
+      const existing = await b.stat(path, true);
       if (existing && !opts.overwrite) throw new RemoteError("Exists", path);
       if (!existing && !opts.create) throw new RemoteError("NotFound", path);
       await b.write(path, content);

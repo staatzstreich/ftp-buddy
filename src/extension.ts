@@ -5,8 +5,10 @@ import { RemoteFileSystem } from "./provider";
 
 export function activate(context: vscode.ExtensionContext) {
   const hostKeys = new StoredHostKeys(context.globalState);
-  const conns = new Connections(context.secrets, hostKeys);
+  const output = vscode.window.createOutputChannel("Craft Remote");
+  const conns = new Connections(context.secrets, hostKeys, output);
   context.subscriptions.push(
+    output,
     vscode.workspace.registerFileSystemProvider(SCHEME, new RemoteFileSystem(conns), { isCaseSensitive: true }),
     { dispose: () => void conns.drop() },
     vscode.commands.registerCommand("craftRemote.connect", () => connect(conns)),
@@ -22,6 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
       await hostKeys.forgetAll();
       vscode.window.showInformationMessage("Alle bekannten Server wurden vergessen.");
     }),
+    vscode.commands.registerCommand("craftRemote.showLog", () => output.show()),
     vscode.commands.registerCommand("craftRemote.reconnect", () => conns.drop()),
   );
 }

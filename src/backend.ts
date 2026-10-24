@@ -33,7 +33,7 @@ export interface Backend {
   home(): Promise<string>;
   list(path: string): Promise<Entry[]>;
   /** `undefined` when the path does not exist. */
-  stat(path: string): Promise<Entry | undefined>;
+  stat(path: string, fresh?: boolean): Promise<Entry | undefined>;
   read(path: string): Promise<Uint8Array>;
   write(path: string, data: Uint8Array): Promise<void>;
   mkdir(path: string): Promise<void>;
@@ -57,4 +57,27 @@ export function baseName(path: string): string {
 export interface HostKeys {
   /** `true` to go on. Called with the server's `SHA256:` fingerprint on every connection. */
   verify(server: string, fingerprint: string): Promise<boolean>;
+}
+
+/** Reports how long each operation took, to find out what feels slow. */
+export function timed(inner: Backend, log: (line: string) => void): Backend {
+  const t = async <T>(what: string, f: () => Promise<T>): Promise<T> => {
+    const start = Date.now();
+    try {
+      return await f();
+    } finally {
+      log(`${String(Date.now() - start).padStart(5)} ms  ${what}`);
+    }
+  };
+  return {
+    home: () => t("home", () => inner.home()),
+    list: (p) => t(`list ${p}`, () => inner.list(p)),
+    stat: (p, fresh) => t(`stat ${p}`, () => inner.stat(p, fresh)),
+    read: (p) => t(`read ${p}`, () => inner.read(p)),
+    write: (p, d) => t(`write ${p} (${d.length} B)`, () => inner.write(p, d)),
+    mkdir: (p) => t(`mkdir ${p}`, () => inner.mkdir(p)),
+    remove: (p, d) => t(`remove ${p}`, () => inner.remove(p, d)),
+    rename: (a, b) => t(`rename ${a} -> ${b}`, () => inner.rename(a, b)),
+    close: () => inner.close(),
+  };
 }

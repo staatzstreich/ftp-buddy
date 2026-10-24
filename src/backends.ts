@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { Backend, HostKeys, Profile } from "./backend";
+import { Backend, HostKeys, Profile, timed } from "./backend";
 import { FtpBackend } from "./ftp";
 import { SftpBackend } from "./sftp";
 
@@ -50,7 +50,7 @@ export class StoredHostKeys implements HostKeys {
 export class Connections {
   private open = new Map<string, Backend>();
 
-  constructor(private secrets: vscode.SecretStorage, private hostKeys: HostKeys) {}
+  constructor(private secrets: vscode.SecretStorage, private hostKeys: HostKeys, private output: vscode.OutputChannel) {}
 
   profileOf(authority: string): Profile {
     const name = decodeURIComponent(authority);
@@ -80,7 +80,8 @@ export class Connections {
     const have = this.open.get(p.name);
     if (have) return have;
     const password = await this.password(p);
-    const backend = p.protocol === "sftp" ? new SftpBackend(p, password, this.hostKeys) : new FtpBackend(p, password);
+    const raw = p.protocol === "sftp" ? new SftpBackend(p, password, this.hostKeys) : new FtpBackend(p, password);
+    const backend = timed(raw, (line) => this.output.appendLine(`[${p.name}] ${line}`));
     this.open.set(p.name, backend);
     return backend;
   }
