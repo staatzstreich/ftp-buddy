@@ -4,3 +4,4 @@ out
 
 # Gesprächsverlauf: enthält private Angaben (Zugangsname, Pfade), bleibt lokal
 docs/entstehung.md
+.DS_Store
