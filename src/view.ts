@@ -102,7 +102,7 @@ export class RemoteTree implements vscode.TreeDataProvider<Node>, vscode.Disposa
 const uriOf = (n: EntryNode) => n.uri;
 
 /** New file, new folder, rename and delete on a node of the tree. */
-export function registerFileCommands(tree: RemoteTree, conns: Connections): vscode.Disposable[] {
+export function registerFileCommands(tree: RemoteTree, conns: Connections, selection: () => readonly Node[]): vscode.Disposable[] {
   const dirOf = (n: EntryNode) => (n.isDir ? n.path : parentOf(n.path));
   const join = (dir: string, name: string) => (dir.endsWith("/") ? dir : dir + "/") + name;
   const name = (prompt: string, value?: string) =>
@@ -154,10 +154,67 @@ export function registerFileCommands(tree: RemoteTree, conns: Connections): vsco
     }
   };
   const backendOf = (n: ProfileNode | EntryNode) => conns.get(encodeURIComponent(n.profile.name));
+  /** The folder an upload to `n` lands in: the folder itself, a file's folder, a profile's start folder. */
+  const targetDir = async (n: ProfileNode | EntryNode) =>
+    n instanceof ProfileNode ? tree.startPath(n.profile) : n.isDir ? n.path : parentOf(n.path);
 
-  return [
+  /** Where downloads go: the workspace folder (asked, if there are several), else a folder dialog. */
+  const downloadTarget = async (nodes: EntryNode[]): Promise<string | undefined> => {
+    const folders = vscode.workspace.workspaceFolders?.filter((f) => f.uri.scheme === "file") ?? [];
+    if (folders.length === 1) return folders[0]?.uri.fsPath;
+    if (folders.length > 1) {
+      const pick = await vscode.window.showQuickPick(
+        folders.map((f) => ({ label: f.name, description: f.uri.fsPath, path: f.uri.fsPath })),
+        { placeHolder: `${nodes.length === 1 ? `„${baseName(nodes[0]?.path ?? "")}“` : `${nodes.length} Einträge`} herunterladen nach …` },
+      );
+      return pick?.path;
+    }
+    const dest = await vscode.window.showOpenDialog({ canSelectFiles: false, canSelectFolders: true, openLabel: "Hierher laden" });
+    return dest?.[0]?.fsPath;
+  };
+
+  const uploadTo = async (profile: Profile, target: string, paths: string[]) => {
+    const policy = conflictPolicy();
+    const result = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: `Hochladen nach ${profile.name}:${target}`, cancellable: true },
+      async (progress, token) => {
+        let last = 0;
+        return upload(await conns.get(encodeURIComponent(profile.name)), paths, target, {
+          exists: policy,
+          cancelled: () => token.isCancellationRequested,
+          progress: (done, total, name) => {
+            if (!total) return;
+            progress.report({ increment: ((done - last) / total) * 100, message: `${done} von ${total}: ${name}` });
+            last = done;
+          },
+        });
+      },
+    );
+    transferred("hochgeladen", result);
+    tree.refresh();
+  };
+
+  const commands = [
+    vscode.commands.registerCommand("craftRemote.uploadFromExplorer", async (clicked?: vscode.Uri, all?: vscode.Uri[]) => {
+      const local = (all?.length ? all : clicked ? [clicked] : []).filter((u) => u.scheme === "file").map((u) => u.fsPath);
+      if (!local.length) return;
+      const open = profiles().filter((p) => conns.isOpen(p.name));
+      if (!open.length) {
+        void vscode.window.showWarningMessage("Keine Verbindung offen. Erst in der Seitenleiste „Craft Remote“ verbinden.");
+        return;
+      }
+      const profile =
+        open.length === 1
+          ? open[0]
+          : (await vscode.window.showQuickPick(open.map((p) => ({ label: p.name, p })), { placeHolder: "Auf welchen Server hochladen?" }))?.p;
+      if (!profile) return;
+      // The folder marked in the Craft Remote tree, if it is on this server; otherwise the start folder.
+      const marked = selection().find((n): n is EntryNode => n instanceof EntryNode && n.profile.name === profile.name);
+      const target = marked ? (marked.isDir ? marked.path : parentOf(marked.path)) : await tree.startPath(profile);
+      await uploadTo(profile, target, local);
+    }),
     vscode.commands.registerCommand("craftRemote.upload", async (n: ProfileNode | EntryNode) => {
-      const target = n instanceof ProfileNode ? await tree.startPath(n.profile) : n.isDir ? n.path : parentOf(n.path);
+      const target = await targetDir(n);
       const picked = await vscode.window.showOpenDialog({
         canSelectFiles: true,
         canSelectFolders: true,
@@ -165,42 +222,17 @@ export function registerFileCommands(tree: RemoteTree, conns: Connections): vsco
         openLabel: "Hochladen",
         title: `Hochladen nach ${target}`,
       });
-      if (!picked?.length) return;
-      const policy = conflictPolicy();
-      const result = await vscode.window.withProgress(
-        { location: vscode.ProgressLocation.Notification, title: `Hochladen nach ${n.profile.name}`, cancellable: true },
-        async (progress, token) => {
-          let last = 0;
-          return upload(await backendOf(n), picked.map((u) => u.fsPath), target, {
-            exists: policy,
-            cancelled: () => token.isCancellationRequested,
-            progress: (done, total, name) => {
-              if (!total) return;
-              progress.report({ increment: ((done - last) / total) * 100, message: `${done} von ${total}: ${name}` });
-              last = done;
-            },
-          });
-        },
-      );
-      transferred("hochgeladen", result);
-      tree.refresh();
+      if (picked?.length) await uploadTo(n.profile, target, picked.map((u) => u.fsPath));
     }),
     vscode.commands.registerCommand("craftRemote.download", async (n: EntryNode, all?: EntryNode[]) => {
       const nodes = (all?.length ? all : [n]).filter((x): x is EntryNode => x instanceof EntryNode);
-      const dest = await vscode.window.showOpenDialog({
-        canSelectFiles: false,
-        canSelectFolders: true,
-        canSelectMany: false,
-        openLabel: "Hierher laden",
-        title: nodes.length === 1 ? `„${baseName(nodes[0]?.path ?? "")}“ herunterladen nach …` : `${nodes.length} Einträge herunterladen nach …`,
-      });
-      const folder = dest?.[0];
+      const folder = await downloadTarget(nodes);
       if (!folder) return;
       const policy = conflictPolicy();
       const result = await vscode.window.withProgress(
         { location: vscode.ProgressLocation.Notification, title: `Herunterladen von ${n.profile.name}`, cancellable: true },
         async (progress, token) =>
-          download(await backendOf(n), nodes.map((x) => ({ path: x.path, isDir: x.isDir })), folder.fsPath, {
+          download(await backendOf(n), nodes.map((x) => ({ path: x.path, isDir: x.isDir })), folder, {
             exists: policy,
             cancelled: () => token.isCancellationRequested,
             progress: (done, _total, name) => progress.report({ message: `${done} Dateien fertig, jetzt ${name}` }),
@@ -238,4 +270,5 @@ export function registerFileCommands(tree: RemoteTree, conns: Connections): vsco
     vscode.commands.registerCommand("craftRemote.copyPath", (n: EntryNode) => vscode.env.clipboard.writeText(n.path)),
     vscode.commands.registerCommand("craftRemote.refresh", () => tree.refresh()),
   ];
+  return commands;
 }

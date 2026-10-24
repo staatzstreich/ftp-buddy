@@ -2,7 +2,7 @@
   "name": "craft-remote",
   "displayName": "Craft Remote",
   "description": "Open SFTP and FTP/FTPS folders directly in the Explorer, no local copy.",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "publisher": "staatzstreich",
   "license": "MIT",
   "private": true,
@@ -106,9 +106,14 @@
       },
       {
         "command": "craftRemote.download",
-        "title": "Herunterladen …",
+        "title": "Herunterladen",
         "category": "Craft Remote",
         "icon": "$(cloud-download)"
+      },
+      {
+        "command": "craftRemote.uploadFromExplorer",
+        "title": "Zu Craft Remote hochladen",
+        "category": "Craft Remote"
       }
     ],
     "configuration": {
@@ -286,7 +291,7 @@
         },
         {
           "command": "craftRemote.download",
-          "when": "view == craftRemote.profiles && viewItem =~ /^remote\\\\./",
+          "when": "view == craftRemote.profiles && viewItem =~ /^remote\\./",
           "group": "0_transfer@2"
         }
       ],
@@ -318,6 +323,17 @@
         {
           "command": "craftRemote.download",
           "when": "false"
+        },
+        {
+          "command": "craftRemote.uploadFromExplorer",
+          "when": "false"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "craftRemote.uploadFromExplorer",
+          "when": "resourceScheme == file",
+          "group": "7_modification@9"
         }
       ]
     }

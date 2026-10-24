@@ -11,9 +11,16 @@ auf: darunter stehen Ordner und Dateien des Servers. Ein Klick auf eine Datei ö
 schreibt direkt auf den Server. Es gibt keinen Explorer-Ordner, keinen Workspace und kein zusätzliches Fenster.
 
 Rechtsklick auf Ordner und Dateien: Neue Datei, Neuer Ordner, Umbenennen, Löschen (Ordner mit Inhalt, nach Rückfrage), Pfad kopieren.
-**Hochladen …** (Rechtsklick auf einen Ordner oder ein verbundenes Profil, oder das Wolken-Symbol in der Zeile): öffnet die Dateiauswahl des
-Mac, mehrere Dateien und ganze Ordner sind möglich. **Herunterladen …** (Rechtsklick auf Datei oder Ordner, auch mehrere markierte):
-fragt nach einem lokalen Zielordner. Beides zeigt einen Fortschritt mit „Abbrechen“. Gibt es eine Datei schon, fragt ein Dialog:
+**Hochladen aus dem VS Code-Explorer:** Dateien oder Ordner im Explorer markieren (auch mehrere), Rechtsklick →
+**Zu Craft Remote hochladen**. Ziel ist der Ordner, den du im Baum **Craft Remote** markiert hast; ist dort nichts markiert, der
+Startordner des Servers. Sind mehrere Server verbunden, fragt VS Code, welcher. Der Fortschritt nennt das Ziel.
+
+**Herunterladen:** im Baum Datei(en) oder Ordner markieren, Rechtsklick → **Herunterladen**. Sie landen im Ordner deines Workspaces
+(bei mehreren Ordnern fragt VS Code; ohne geöffneten Ordner erscheint eine Ordnerauswahl). Danach kannst du sie im Explorer
+an die richtige Stelle ziehen.
+
+Zusätzlich gibt es im Baum bei Ordnern **Hochladen …** mit der Dateiauswahl des Mac, falls du etwas von außerhalb des Workspaces brauchst.
+Beides zeigt einen Fortschritt mit „Abbrechen“. Gibt es eine Datei schon, fragt ein Dialog:
 Überschreiben, Überspringen, Alle überschreiben, Alle überspringen. Ordner werden samt Inhalt übertragen, leere Ordner auch;
 symbolische Links werden beim Hochladen übersprungen.
 
@@ -67,8 +74,8 @@ npm install
 npm test            # FTP (ftp-srv) und SFTP (lokaler sshd) gegen dieselben Vertragstests
 npm run typecheck
 npm run build       # out/extension.js
-npm run package     # craft-remote-0.4.1.vsix
-code --install-extension craft-remote-0.4.1.vsix
+npm run package     # craft-remote-0.5.0.vsix
+code --install-extension craft-remote-0.5.0.vsix
 ```
 
 Zum Ausprobieren ohne Installation: Ordner in VS Code öffnen und F5 (Extension Development Host).
