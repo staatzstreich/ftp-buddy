@@ -50,6 +50,14 @@ export class StoredHostKeys implements HostKeys {
 /** One live connection per profile, created on first use. */
 export class Connections {
   private open = new Map<string, Promise<Backend>>();
+  private changed = new vscode.EventEmitter<void>();
+  /** Fires when a connection is opened or closed. */
+  readonly onDidChange = this.changed.event;
+
+  /** Whether a connection for the profile exists (it may still be starting). */
+  isOpen(name: string): boolean {
+    return this.open.has(name);
+  }
 
   constructor(private secrets: vscode.SecretStorage, private hostKeys: HostKeys, private output: vscode.OutputChannel) {}
 
@@ -88,6 +96,9 @@ export class Connections {
       const password = await this.password(p);
       const raw = p.protocol === "sftp" ? new SftpBackend(p, password, this.hostKeys) : new FtpBackend(p, password);
       return timed(raw, (line) => this.output.appendLine(`[${p.name}] ${line}`));
+    }).then((b) => {
+      this.changed.fire();
+      return b;
     });
   }
 
@@ -103,5 +114,6 @@ export class Connections {
       this.open.delete(n);
       await b?.close();
     }
+    this.changed.fire();
   }
 }

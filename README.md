@@ -5,6 +5,12 @@ Dateien werden beim Öffnen vom Server gelesen und beim Speichern direkt dorthin
 
 ## Benutzen
 
+In der Seitenleiste gibt es ein Feld **Craft Remote** (Server-Symbol) mit allen Profilen. Ein grüner Punkt zeigt eine bestehende
+Verbindung. Pro Zeile gibt es **Verbinden** (Stecker, auch per Klick) und **Trennen** (nimmt den Ordner aus dem Explorer und
+schließt die Verbindung). Oben im Feld: Profil anlegen, Einstellungen, Zeitmessung. Rechtsklick: gespeichertes Passwort vergessen.
+Eine Verbindung endet beim Trennen, beim Schließen oder Neuladen des Fensters und wenn der Server sie beendet (sie wird beim
+nächsten Zugriff neu aufgebaut).
+
 1. Befehlspalette (⇧⌘P) → **Craft Remote: Profil anlegen …** (Name, Protokoll, Server, Port, Benutzer, Schlüssel, Startordner).
    Profile stehen danach in den Einstellungen unter `craftRemote.profiles`.
 2. **Craft Remote: Mit Profil verbinden …** → der Ordner wird als Workspace-Ordner hinzugefügt.
@@ -48,8 +54,8 @@ npm install
 npm test            # FTP (ftp-srv) und SFTP (lokaler sshd) gegen dieselben Vertragstests
 npm run typecheck
 npm run build       # out/extension.js
-npm run package     # craft-remote-0.1.4.vsix
-code --install-extension craft-remote-0.1.4.vsix
+npm run package     # craft-remote-0.2.0.vsix
+code --install-extension craft-remote-0.2.0.vsix
 ```
 
 Zum Ausprobieren ohne Installation: Ordner in VS Code öffnen und F5 (Extension Development Host).

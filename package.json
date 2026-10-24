@@ -2,7 +2,7 @@
   "name": "craft-remote",
   "displayName": "Craft Remote",
   "description": "Open SFTP and FTP/FTPS folders directly in the Explorer, no local copy.",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "publisher": "staatzstreich",
   "license": "MIT",
   "private": true,
@@ -15,24 +15,28 @@
   "main": "./out/extension.js",
   "activationEvents": [
     "onFileSystem:craftremote",
+    "onView:craftRemote.profiles",
     "onCommand:craftRemote.connect"
   ],
   "contributes": {
     "commands": [
       {
         "command": "craftRemote.connect",
-        "title": "Mit Profil verbinden …",
-        "category": "Craft Remote"
+        "title": "Verbinden",
+        "category": "Craft Remote",
+        "icon": "$(plug)"
       },
       {
         "command": "craftRemote.addProfile",
         "title": "Profil anlegen …",
-        "category": "Craft Remote"
+        "category": "Craft Remote",
+        "icon": "$(add)"
       },
       {
         "command": "craftRemote.editProfiles",
         "title": "Profile bearbeiten (settings.json)",
-        "category": "Craft Remote"
+        "category": "Craft Remote",
+        "icon": "$(gear)"
       },
       {
         "command": "craftRemote.forgetPassword",
@@ -43,6 +47,23 @@
         "command": "craftRemote.reconnect",
         "title": "Verbindung neu aufbauen",
         "category": "Craft Remote"
+      },
+      {
+        "command": "craftRemote.forgetHostKeys",
+        "title": "Bekannte Server vergessen",
+        "category": "Craft Remote"
+      },
+      {
+        "command": "craftRemote.showLog",
+        "title": "Zeitmessung anzeigen",
+        "category": "Craft Remote",
+        "icon": "$(output)"
+      },
+      {
+        "command": "craftRemote.disconnect",
+        "title": "Trennen",
+        "category": "Craft Remote",
+        "icon": "$(debug-disconnect)"
       }
     ],
     "configuration": {
@@ -95,6 +116,65 @@
           }
         }
       }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "craftRemote",
+          "title": "Craft Remote",
+          "icon": "resources/remote.svg"
+        }
+      ]
+    },
+    "views": {
+      "craftRemote": [
+        {
+          "id": "craftRemote.profiles",
+          "name": "Verbindungen"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "craftRemote.profiles",
+        "contents": "Noch kein Profil angelegt.\n[Profil anlegen](command:craftRemote.addProfile)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "craftRemote.addProfile",
+          "when": "view == craftRemote.profiles",
+          "group": "navigation@1"
+        },
+        {
+          "command": "craftRemote.editProfiles",
+          "when": "view == craftRemote.profiles",
+          "group": "navigation@2"
+        },
+        {
+          "command": "craftRemote.showLog",
+          "when": "view == craftRemote.profiles",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "craftRemote.connect",
+          "when": "view == craftRemote.profiles && viewItem == profile.disconnected",
+          "group": "inline"
+        },
+        {
+          "command": "craftRemote.disconnect",
+          "when": "view == craftRemote.profiles && viewItem == profile.connected",
+          "group": "inline"
+        },
+        {
+          "command": "craftRemote.forgetPassword",
+          "when": "view == craftRemote.profiles",
+          "group": "9_password"
+        }
+      ]
     }
   },
   "scripts": {
