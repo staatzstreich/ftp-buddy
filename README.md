@@ -18,8 +18,8 @@ legt sie in den passenden lokalen Ordner, fehlende Unterordner werden angelegt. 
 Der Zuordnungs-Ordner selbst überträgt seinen Inhalt, nicht eine Kopie seines Namens.
 
 ```json
-{ "name": "Lab", "protocol": "sftp", "host": "staatzstreich.de", "port": 23,
-  "remotePath": "/web/lab.staatzstreich.de", "localPath": "~/Developer/staatzstreich-lab" }
+{ "name": "Lab", "protocol": "sftp", "host": "sftp.example.com", "port": 22,
+  "remotePath": "/web/lab", "localPath": "~/Developer/lab" }
 ```
 
 **Hochladen aus dem VS Code-Explorer:** Dateien oder Ordner im Explorer markieren (auch mehrere), Rechtsklick →
@@ -69,7 +69,7 @@ Beispielprofil:
 ```json
 "ftpBuddy.profiles": [
   { "name": "Kunde Müller", "protocol": "ftps", "host": "ftp.example.com", "username": "web123", "remotePath": "/htdocs" },
-  { "name": "Server", "protocol": "sftp", "host": "example.org", "username": "michael", "privateKeyPath": "~/.ssh/id_ed25519" }
+  { "name": "Server", "protocol": "sftp", "host": "example.org", "username": "benutzer", "privateKeyPath": "~/.ssh/id_ed25519" }
 ]
 ```
 
@@ -82,6 +82,25 @@ Beispielprofil:
 - FTP: keine Zeitstempel bei Servern ohne MLSD; Symlinks werden durch Auflisten als Ordner erkannt.
 - Nur Passwort oder Schlüssel (mit oder ohne Passphrase); kein ssh-agent, kein `~/.ssh/config`.
 - Nicht im echten VS Code-Fenster geprüft, nur die Protokollschicht per Tests (siehe unten).
+
+## Installieren
+
+Aus einer fertigen Paketdatei (`ftp-buddy-<version>.vsix`, etwa von der Release-Seite des Repositorys):
+
+```sh
+code --install-extension ftp-buddy-0.8.0.vsix
+```
+
+Oder aus dem Quelltext (braucht Node.js 20 oder neuer):
+
+```sh
+git clone <Adresse des Repositorys> && cd ftp-buddy
+npm install
+npm run package
+code --install-extension ftp-buddy-0.8.0.vsix
+```
+
+Danach das Fenster neu laden (⇧⌘P → „Developer: Reload Window“). Deine Profile stehen in den Einstellungen unter `ftpBuddy.profiles`.
 
 ## Entwickeln
 

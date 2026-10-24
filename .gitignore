@@ -1,3 +1,6 @@
 node_modules
 out
 *.vsix
+
+# Gesprächsverlauf: enthält private Angaben (Zugangsname, Pfade), bleibt lokal
+docs/entstehung.md
