@@ -63,8 +63,8 @@ class Memory implements HostKeys {
   }
 }
 
-const backend = (key: string, keys: HostKeys = new Memory()) =>
-  new SftpBackend({ name: "t", protocol: "sftp", host: "127.0.0.1", port, username: userInfo().username, privateKeyPath: key }, undefined, keys);
+const backend = (key: string, keys: HostKeys = new Memory(), limit?: number) =>
+  new SftpBackend({ name: "t", protocol: "sftp", host: "127.0.0.1", port, username: userInfo().username, privateKeyPath: key }, undefined, keys, limit);
 
 test("sftp: read, write, list, rename, delete keep bytes exact", { skip: !SSHD || !SFTP_SERVER }, async () => {
   const b = backend(join(dir, "id"));
@@ -99,4 +99,27 @@ test("sftp: the host key is remembered and a different one is refused", { skip: 
   const second = backend(join(dir, "id"), keys);
   await assert.rejects(second.home());
   await second.close();
+});
+
+test("sftp: time spent in the host key dialog does not count towards the handshake timeout", { skip: !SSHD || !SFTP_SERVER }, async () => {
+  const slow: HostKeys = { verify: () => new Promise((r) => setTimeout(() => r(true), 1500)) };
+  const b = backend(join(dir, "id"), slow, 700);
+  try {
+    assert.ok((await b.home()).startsWith("/"));
+  } finally {
+    await b.close();
+  }
+});
+
+test("sftp: a server that never answers times out", { skip: !SSHD || !SFTP_SERVER }, async () => {
+  const silent = createServer().listen(0, "127.0.0.1");
+  await new Promise((r) => silent.once("listening", r));
+  const p = (silent.address() as AddressInfo).port;
+  const b = new SftpBackend({ name: "t", protocol: "sftp", host: "127.0.0.1", port: p, username: "x", privateKeyPath: join(dir, "id") }, undefined, new Memory(), 700);
+  try {
+    await assert.rejects(b.home(), /handshake/);
+  } finally {
+    await b.close();
+    silent.close();
+  }
 });

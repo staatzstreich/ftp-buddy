@@ -21,25 +21,56 @@ export class SftpBackend implements Backend {
   private client: Sftp | undefined;
   private connecting: Promise<Sftp> | undefined;
 
-  constructor(private profile: Profile, private password: string | undefined, private hostKeys: HostKeys) {}
+  constructor(private profile: Profile, private password: string | undefined, private hostKeys: HostKeys, private handshakeLimitMs = 20000) {}
 
   private async connect(): Promise<Sftp> {
     const c = new SftpClient();
     const p = this.profile;
-    await c.connect({
+    // ssh2's own timeout also runs while the user reads the host key dialog, so it is switched off
+    // there and replaced by one that stops the clock during the question.
+    let waiting = 0;
+    let asked: number | undefined;
+    const started = Date.now();
+    const limit = this.handshakeLimitMs;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timedOut = new Promise<never>((_, reject) => {
+      const check = () => {
+        const spent = Date.now() - started - waiting - (asked === undefined ? 0 : Date.now() - asked);
+        if (spent >= limit) reject(new RemoteError("Unavailable", "Timed out while waiting for handshake"));
+        else timer = setTimeout(check, Math.min(500, limit - spent));
+      };
+      check();
+    });
+    const connecting = c.connect({
       host: p.host,
       port: defaultPort(p),
       username: p.username,
       password: p.privateKeyPath ? undefined : this.password,
       privateKey: p.privateKeyPath ? readFileSync(expand(p.privateKeyPath)) : undefined,
       passphrase: p.privateKeyPath ? this.password : undefined,
-      readyTimeout: 20000,
+      readyTimeout: 10 * 60 * 1000,
       keepaliveInterval: 20000,
       hostVerifier: (key: Buffer, done: (ok: boolean) => void) => {
         const fingerprint = "SHA256:" + createHash("sha256").update(key).digest("base64").replace(/=+$/, "");
-        this.hostKeys.verify(`${p.host}:${defaultPort(p)}`, fingerprint).then(done, () => done(false));
+        asked = Date.now();
+        this.hostKeys
+          .verify(`${p.host}:${defaultPort(p)}`, fingerprint)
+          .finally(() => {
+            waiting += Date.now() - (asked ?? Date.now());
+            asked = undefined;
+          })
+          .then(done, () => done(false));
       },
     });
+    try {
+      await Promise.race([connecting, timedOut]);
+    } catch (e) {
+      void c.end().catch(() => undefined);
+      void connecting.catch(() => undefined);
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
     // A dropped connection must not stay cached.
     const forget = () => {
       if (this.client === c) this.client = undefined;
