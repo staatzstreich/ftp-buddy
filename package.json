@@ -2,7 +2,7 @@
   "name": "craft-remote",
   "displayName": "Craft Remote",
   "description": "Open SFTP and FTP/FTPS folders directly in the Explorer, no local copy.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "staatzstreich",
   "license": "MIT",
   "private": true,
@@ -114,6 +114,19 @@
               }
             }
           }
+        },
+        "craftRemote.openIn": {
+          "type": "string",
+          "enum": [
+            "window",
+            "addToWindow"
+          ],
+          "enumDescriptions": [
+            "Im eigenen Fenster: ein leeres Fenster wird benutzt, sonst öffnet sich ein neues. Kein „Untitled Workspace“.",
+            "Als zusätzlicher Ordner im aktuellen Fenster (macht daraus einen Multi-Root-Workspace)."
+          ],
+          "default": "window",
+          "description": "Wo ein Remote-Ordner beim Verbinden geöffnet wird."
         }
       }
     },

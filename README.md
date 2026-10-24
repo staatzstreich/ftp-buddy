@@ -38,6 +38,13 @@ Beispielprofil:
 ]
 ```
 
+## Fenster und „Untitled Workspace“
+
+Standardmäßig (`craftRemote.openIn` = `window`) öffnet **Verbinden** den Remote-Ordner in einem eigenen Fenster: ein leeres Fenster
+wird benutzt, sonst öffnet sich ein neues. Dadurch entsteht kein „Untitled Workspace“, denn den macht VS Code nur, wenn man einem
+Fenster mit Ordner einen zweiten hinzufügt. Mit `addToWindow` wird der Ordner stattdessen im aktuellen Fenster ergänzt.
+**Trennen** schließt den Ordner dieses Fensters (ist es der einzige, bleibt das Fenster leer offen).
+
 ## Grenzen des Prototyps
 
 - Ordner werden nicht überwacht: Änderungen von außen siehst du erst nach „Explorer aktualisieren“.
@@ -54,8 +61,8 @@ npm install
 npm test            # FTP (ftp-srv) und SFTP (lokaler sshd) gegen dieselben Vertragstests
 npm run typecheck
 npm run build       # out/extension.js
-npm run package     # craft-remote-0.2.0.vsix
-code --install-extension craft-remote-0.2.0.vsix
+npm run package     # craft-remote-0.2.1.vsix
+code --install-extension craft-remote-0.2.1.vsix
 ```
 
 Zum Ausprobieren ohne Installation: Ordner in VS Code öffnen und F5 (Extension Development Host).

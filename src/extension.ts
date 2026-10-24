@@ -61,9 +61,17 @@ async function connect(conns: Connections, output: vscode.OutputChannel, chosen?
         const start = p.remotePath || (await backend.home());
         const uri = uriFor(p, start);
         const folders = vscode.workspace.workspaceFolders ?? [];
-        if (!folders.some((f) => f.uri.toString() === uri.toString())) {
-          vscode.workspace.updateWorkspaceFolders(folders.length, 0, { uri, name: p.name });
+        if (folders.some((f) => f.uri.toString() === uri.toString())) return;
+        const mode = vscode.workspace.getConfiguration("craftRemote").get<string>("openIn", "window");
+        if (mode === "window") {
+          // A window of its own: an empty window is reused, one with a folder stays as it is. No
+          // "Untitled Workspace", which VS Code makes when a second folder is added.
+          await vscode.commands.executeCommand("vscode.openFolder", uri, { forceNewWindow: folders.length > 0, forceReuseWindow: folders.length === 0 });
+          // The new window opens its own connection; this one only checked the login.
+          if (folders.length > 0) await conns.drop(p.name);
+          return;
         }
+        vscode.workspace.updateWorkspaceFolders(folders.length, 0, { uri, name: p.name });
         await vscode.commands.executeCommand("workbench.view.explorer");
       } catch (e) {
         // Wrong password or host: forget the cached connection so the next try asks again.
@@ -81,7 +89,12 @@ async function disconnect(conns: Connections, chosen?: Profile) {
   if (!p) return;
   // The folder goes first: anything still reading from it would otherwise open the connection again.
   const folder = folderOf(p);
-  if (folder) vscode.workspace.updateWorkspaceFolders(folder.index, 1);
+  if (folder && (vscode.workspace.workspaceFolders?.length ?? 0) === 1) {
+    // The only folder of this window: close it, the window stays open and empty.
+    await vscode.commands.executeCommand("workbench.action.closeFolder");
+  } else if (folder) {
+    vscode.workspace.updateWorkspaceFolders(folder.index, 1);
+  }
   await conns.drop(p.name);
 }
 
