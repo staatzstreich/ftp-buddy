@@ -87,10 +87,14 @@ export function timed(inner: Backend, log: (line: string) => void): Backend {
  * dozen requests in a burst before the first connection exists). A failed creation is forgotten,
  * so the next call tries again.
  */
-export function once<K, V>(cache: Map<K, Promise<V>>, key: K, create: () => Promise<V>): Promise<V> {
+export function once<K, V>(cache: Map<K, Promise<V>>, key: K, create: () => Promise<V>, created?: () => void): Promise<V> {
   const have = cache.get(key);
   if (have) return have;
-  const made = create().catch((e) => {
+  const made = create().then((v) => {
+    // Told once per creation, never to the callers that only got the cached value.
+    created?.();
+    return v;
+  }).catch((e) => {
     cache.delete(key);
     throw e;
   });

@@ -20,3 +20,10 @@ test("once: a failed creation is retried by the next caller", async () => {
   await assert.rejects(once(cache, "k", async () => Promise.reject(new Error("no"))));
   assert.equal(await once(cache, "k", async () => 1), 1);
 });
+
+test("once: only the creation is announced, not every later call", async () => {
+  const cache = new Map<string, Promise<number>>();
+  let announced = 0;
+  for (let i = 0; i < 14; i++) await once(cache, "k", async () => 1, () => announced++);
+  assert.equal(announced, 1);
+});

@@ -95,11 +95,11 @@ export class Connections {
     return once(this.open, p.name, async () => {
       const password = await this.password(p);
       const raw = p.protocol === "sftp" ? new SftpBackend(p, password, this.hostKeys) : new FtpBackend(p, password);
-      return timed(raw, (line) => this.output.appendLine(`[${p.name}] ${line}`));
-    }).then((b) => {
-      this.changed.fire();
-      return b;
-    });
+      const backend = timed(raw, (line) => this.output.appendLine(`[${p.name}] ${line}`));
+      return backend;
+    // Only a new connection is news; every later `get` must stay silent, or the tree that
+    // listens here would reload itself forever.
+    }, () => this.changed.fire());
   }
 
   async forgetPassword(name: string): Promise<void> {

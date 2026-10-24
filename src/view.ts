@@ -41,7 +41,10 @@ export class RemoteTree implements vscode.TreeDataProvider<Node>, vscode.Disposa
   constructor(private conns: Connections, private fs: RemoteFileSystem) {
     this.subs = [
       this.changed,
-      conns.onDidChange(() => this.refresh()),
+      conns.onDidChange(() => {
+        for (const name of [...this.starts.keys()]) if (!conns.isOpen(name)) this.starts.delete(name);
+        this.refresh();
+      }),
       vscode.workspace.onDidChangeConfiguration((e) => e.affectsConfiguration("craftRemote") && this.refresh()),
     ];
   }
@@ -65,9 +68,16 @@ export class RemoteTree implements vscode.TreeDataProvider<Node>, vscode.Disposa
     return node.isDir ? this.list(node.profile, node.path) : [];
   }
 
+  /** Where a profile's tree starts; asked once per connection. */
+  private starts = new Map<string, string>();
+
   private async startPath(p: Profile): Promise<string> {
     if (p.remotePath) return p.remotePath;
-    return (await this.conns.get(encodeURIComponent(p.name))).home();
+    const known = this.starts.get(p.name);
+    if (known) return known;
+    const home = await (await this.conns.get(encodeURIComponent(p.name))).home();
+    this.starts.set(p.name, home);
+    return home;
   }
 
   private async list(p: Profile, path: string): Promise<Node[]> {
