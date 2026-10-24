@@ -17,11 +17,12 @@ const secretKey = (name: string) => `craftRemote.password.${name}`;
 
 /** Trust on first use: the first fingerprint is confirmed by the user, later ones must match. */
 export class StoredHostKeys implements HostKeys {
-  constructor(private state: vscode.Memento) {}
+  constructor(private state: vscode.Memento, private output: vscode.OutputChannel) {}
 
   async verify(server: string, fingerprint: string): Promise<boolean> {
     const known = this.state.get<Record<string, string>>("craftRemote.hostKeys", {});
     const have = known[server];
+    this.output.appendLine(`${server}: Fingerabdruck ${fingerprint} (${have ? (have === fingerprint ? "bekannt" : "GEÄNDERT") : "neu, warte auf Bestätigung im Dialog"})`);
     if (have === fingerprint) return true;
     if (have) {
       vscode.window.showErrorMessage(
@@ -62,9 +63,15 @@ export class Connections {
   /** A password is asked for only when the profile needs one and none is saved. */
   private async password(p: Profile): Promise<string | undefined> {
     const needs = p.protocol === "sftp" ? !p.privateKeyPath : !!p.username;
-    if (!needs) return undefined;
+    if (!needs) {
+      this.output.appendLine(`[${p.name}] Anmeldung ohne Passwort (${p.protocol === "sftp" ? "Schlüssel " + p.privateKeyPath : "anonym"})`);
+      return undefined;
+    }
     const saved = await this.secrets.get(secretKey(p.name));
-    if (saved !== undefined) return saved;
+    if (saved !== undefined) {
+      this.output.appendLine(`[${p.name}] Passwort aus dem Schlüsselbund`);
+      return saved;
+    }
     const typed = await vscode.window.showInputBox({
       prompt: `Passwort für ${p.username ?? ""}@${p.host}`,
       password: true,

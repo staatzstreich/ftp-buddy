@@ -4,14 +4,14 @@ import { Connections, SCHEME, StoredHostKeys, profiles, uriFor } from "./backend
 import { RemoteFileSystem } from "./provider";
 
 export function activate(context: vscode.ExtensionContext) {
-  const hostKeys = new StoredHostKeys(context.globalState);
   const output = vscode.window.createOutputChannel("Craft Remote");
+  const hostKeys = new StoredHostKeys(context.globalState, output);
   const conns = new Connections(context.secrets, hostKeys, output);
   context.subscriptions.push(
     output,
     vscode.workspace.registerFileSystemProvider(SCHEME, new RemoteFileSystem(conns), { isCaseSensitive: true }),
     { dispose: () => void conns.drop() },
-    vscode.commands.registerCommand("craftRemote.connect", () => connect(conns)),
+    vscode.commands.registerCommand("craftRemote.connect", () => connect(conns, output)),
     vscode.commands.registerCommand("craftRemote.addProfile", addProfile),
     vscode.commands.registerCommand("craftRemote.editProfiles", () =>
       vscode.commands.executeCommand("workbench.action.openSettings", "craftRemote.profiles"),
@@ -45,7 +45,7 @@ async function pickProfile(placeHolder: string): Promise<Profile | undefined> {
   return item?.p;
 }
 
-async function connect(conns: Connections) {
+async function connect(conns: Connections, output: vscode.OutputChannel) {
   const p = await pickProfile("Mit welchem Profil verbinden?");
   if (!p) return;
   await vscode.window.withProgress(
@@ -63,6 +63,7 @@ async function connect(conns: Connections) {
       } catch (e) {
         // Wrong password or host: forget the cached connection so the next try asks again.
         await conns.drop(p.name);
+        output.appendLine(`[${p.name}] Fehler: ${e instanceof Error ? e.message : e}`);
         vscode.window.showErrorMessage(`Verbindung zu ${p.host} fehlgeschlagen: ${e instanceof Error ? e.message : e}`);
       }
     },

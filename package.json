@@ -2,7 +2,7 @@
   "name": "craft-remote",
   "displayName": "Craft Remote",
   "description": "Open SFTP and FTP/FTPS folders directly in the Explorer, no local copy.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "staatzstreich",
   "license": "MIT",
   "private": true,
