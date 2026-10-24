@@ -65,6 +65,8 @@ export class SftpBackend implements Backend {
     try {
       await Promise.race([connecting, timedOut]);
     } catch (e) {
+      // `end()` waits for a handshake that never comes; the socket has to be torn down.
+      (c as unknown as { client?: { destroy(): void } }).client?.destroy();
       void c.end().catch(() => undefined);
       void connecting.catch(() => undefined);
       throw e;
