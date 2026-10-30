@@ -73,6 +73,18 @@ Beispielprofil:
 ]
 ```
 
+## FTPS und Zertifikate
+
+FTPS (explizit, Port 21) prüft das Zertifikat des Servers. Kennt dein Mac die ausstellende Stelle, geht es ohne Rückfrage. Ist das
+Zertifikat selbst signiert oder stammt von einer Firmen-CA, die nur im macOS-Schlüsselbund steht (Node benutzt den Schlüsselbund
+nicht), zeigt ein Dialog **einmal** den Fingerabdruck. Nach „Vertrauen“ wird genau dieses Zertifikat gemerkt, für die Anmeldung
+und für jede Datenverbindung; ein anderes wird abgelehnt. Vor der Bestätigung wird kein Benutzername und kein Passwort gesendet.
+**Bekannte Server vergessen** löscht die gemerkten Fingerabdrücke (SFTP und FTPS). Implizites FTPS (Port 990) wird nicht unterstützt.
+
+Meldet der Server `421`, hat er die Verbindung abgelehnt, oft wegen eines Limits gleichzeitiger Verbindungen: andere FTP-Programme
+schließen. Das Ausgabefenster „FTP Buddy“ zeigt bei FTP den ganzen Befehlsdialog (Passwörter sind maskiert), damit sich Probleme
+nachvollziehen lassen.
+
 ## Grenzen des Prototyps
 
 - Ordner werden nicht überwacht: Änderungen von außen siehst du erst nach „Aktualisieren“ (Pfeil oben im Feld).
@@ -88,7 +100,7 @@ Beispielprofil:
 Aus einer fertigen Paketdatei (`ftp-buddy-<version>.vsix`, etwa von der Release-Seite des Repositorys):
 
 ```sh
-code --install-extension ftp-buddy-0.8.0.vsix
+code --install-extension ftp-buddy-0.9.0.vsix
 ```
 
 Oder aus dem Quelltext (braucht Node.js 20 oder neuer):
@@ -97,7 +109,7 @@ Oder aus dem Quelltext (braucht Node.js 20 oder neuer):
 git clone <Adresse des Repositorys> && cd ftp-buddy
 npm install
 npm run package
-code --install-extension ftp-buddy-0.8.0.vsix
+code --install-extension ftp-buddy-0.9.0.vsix
 ```
 
 Danach das Fenster neu laden (⇧⌘P → „Developer: Reload Window“). Deine Profile stehen in den Einstellungen unter `ftpBuddy.profiles`.
@@ -109,8 +121,8 @@ npm install
 npm test            # FTP (ftp-srv) und SFTP (lokaler sshd) gegen dieselben Vertragstests
 npm run typecheck
 npm run build       # out/extension.js
-npm run package     # ftp-buddy-0.8.0.vsix
-code --install-extension ftp-buddy-0.8.0.vsix
+npm run package     # ftp-buddy-0.9.0.vsix
+code --install-extension ftp-buddy-0.9.0.vsix
 ```
 
 Zum Ausprobieren ohne Installation: Ordner in VS Code öffnen und F5 (Extension Development Host).

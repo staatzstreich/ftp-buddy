@@ -1,8 +1,28 @@
 import { Client, FileInfo, FileType } from "basic-ftp";
+import { createHash } from "node:crypto";
 import { Readable, Writable } from "node:stream";
-import { Backend, Entry, Profile, RemoteError, baseName, defaultPort, parentOf } from "./backend";
+import { ConnectionOptions, TLSSocket } from "node:tls";
+import { Backend, Entry, HostKeys, Profile, RemoteError, baseName, defaultPort, parentOf } from "./backend";
+
+/** Errors Node gives when it does not trust the server's certificate (self-signed, unknown CA, wrong name, expired). */
+const CERT_ERRORS = new Set([
+  "DEPTH_ZERO_SELF_SIGNED_CERT",
+  "SELF_SIGNED_CERT_IN_CHAIN",
+  "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+  "UNABLE_TO_GET_ISSUER_CERT",
+  "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
+  "CERT_HAS_EXPIRED",
+  "CERT_NOT_YET_VALID",
+  "CERT_UNTRUSTED",
+  "ERR_TLS_CERT_ALTNAME_INVALID",
+]);
+
+const isCertError = (e: unknown) => CERT_ERRORS.has(String((e as { code?: unknown }).code));
+
+const fingerprintOf = (der: Buffer) => "SHA256:" + createHash("sha256").update(der).digest("base64").replace(/=+$/, "");
 
 function translate(e: unknown, path: string): RemoteError {
+  if (e instanceof RemoteError) return e;
   const msg = e instanceof Error ? e.message : String(e);
   const code = (e as { code?: number }).code;
   if (code === 550 || /no such file|not found|550/i.test(msg)) return new RemoteError("NotFound", path);
@@ -32,20 +52,98 @@ export class FtpBackend implements Backend {
   /** Listings under way, so parallel requests for one folder share a single LIST. */
   private pending = new Map<string, Promise<Entry[]>>();
 
-  constructor(private profile: Profile, private password: string | undefined) {}
+  /** `hostKeys` decides about certificates Node does not trust itself; without it only trusted ones are accepted. */
+  constructor(
+    private profile: Profile,
+    private password: string | undefined,
+    private hostKeys?: HostKeys,
+    private log: (line: string) => void = () => undefined,
+  ) {}
 
+  /** A new client that reports what it says and hears (passwords are masked by basic-ftp). */
+  private newClient(): Client {
+    const c = new Client(30000);
+    c.ftp.verbose = true;
+    c.ftp.log = (line: string) => this.log(`ftp  ${line}`);
+    return c;
+  }
+
+  /**
+   * Connects and, for FTPS, switches to TLS before anything secret is sent. A certificate that Node
+   * does not trust (a company CA that only the macOS keychain knows, a self-signed one) is not
+   * refused outright: its fingerprint goes to the user once, like an SSH host key, and from then on
+   * only that very certificate is accepted, on the control and on every data connection.
+   */
   private async connect(): Promise<Client> {
     const p = this.profile;
-    const c = new Client(30000);
-    await c.access({
-      host: p.host,
-      port: defaultPort(p),
-      user: p.username || "anonymous",
-      password: p.username ? this.password ?? "" : "anonymous@",
-      secure: p.protocol === "ftps",
-    });
-    await c.useDefaultSettings();
-    return c;
+    const host = p.host;
+    const port = defaultPort(p);
+    const login = async (c: Client) => {
+      await c.sendIgnoringError("OPTS UTF8 ON");
+      await c.login(p.username || "anonymous", p.username ? this.password ?? "" : "anonymous@");
+      await c.useDefaultSettings();
+      return c;
+    };
+    if (p.protocol !== "ftps") {
+      const c = this.newClient();
+      try {
+        await c.connect(host, port);
+        return await login(c);
+      } catch (e) {
+        c.close();
+        throw this.explain(e);
+      }
+    }
+
+    const strict = this.newClient();
+    try {
+      await strict.connect(host, port);
+      await strict.useTLS({ host });
+      return await login(strict);
+    } catch (e) {
+      strict.close();
+      if (!isCertError(e) || !this.hostKeys) throw this.explain(e);
+      this.log(`tls  Zertifikat nicht vertrauenswürdig (${(e as { code?: string }).code}); frage nach dem Fingerabdruck`);
+    }
+
+    const c = this.newClient();
+    try {
+      await c.connect(host, port);
+      // Look at the certificate, but send nothing secret until it is confirmed.
+      await c.useTLS({ host, rejectUnauthorized: false });
+      const cert = (c.ftp.socket as TLSSocket).getPeerCertificate();
+      const fingerprint = fingerprintOf(cert.raw);
+      this.log(`tls  Zertifikat ${fingerprint}, ausgestellt für ${cert.subject?.CN ?? "?"} von ${cert.issuer?.CN ?? "?"}`);
+      if (!(await this.hostKeys?.verify(`ftps:${host}:${port}`, fingerprint))) {
+        throw new RemoteError("NoPermission", "Dem Zertifikat des Servers wurde nicht vertraut.");
+      }
+      // Data connections get the same check, so no other certificate slips in later.
+      const pinned: ConnectionOptions = {
+        host,
+        rejectUnauthorized: false,
+        checkServerIdentity: (_name, other) => (fingerprintOf(other.raw) === fingerprint ? undefined : new Error("Zertifikat der Datenverbindung weicht ab")),
+      };
+      c.ftp.tlsOptions = pinned;
+      return await login(c);
+    } catch (e) {
+      c.close();
+      throw this.explain(e);
+    }
+  }
+
+  /** The reason in words; certificate problems say what to do. */
+  private explain(e: unknown): unknown {
+    if (e instanceof RemoteError) return e;
+    const code = (e as { code?: string }).code;
+    const msg = e instanceof Error ? e.message : String(e);
+    this.log(`fehler  ${code ?? ""} ${msg}`);
+    // 421 is the server closing the door: very often a limit of connections per address or user.
+    // Trying again at once would only make it worse, so this is not the "Unavailable" that is retried.
+    if ((e as { code?: number }).code === 421 || /^421\b/.test(msg)) {
+      return new RemoteError("NoPermission", `Der Server hat die Verbindung abgelehnt: ${msg}. Oft ist das ein Limit gleichzeitiger Verbindungen: andere FTP-Programme (Cyberduck, FileZilla) schließen und noch einmal versuchen.`);
+    }
+    if (isCertError(e)) return new RemoteError("NoPermission", `Zertifikat nicht vertrauenswürdig (${code}). ${msg}`);
+    return e;
   }
 
   private enqueue<T>(path: string, f: (c: Client) => Promise<T>): Promise<T> {

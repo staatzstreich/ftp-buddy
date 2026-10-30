@@ -94,7 +94,7 @@ export class Connections {
     const p = this.profileOf(authority);
     return once(this.open, p.name, async () => {
       const password = await this.password(p);
-      const raw = p.protocol === "sftp" ? new SftpBackend(p, password, this.hostKeys) : new FtpBackend(p, password);
+      const raw = p.protocol === "sftp" ? new SftpBackend(p, password, this.hostKeys) : new FtpBackend(p, password, this.hostKeys, (line) => this.output.appendLine(`[${p.name}] ${line}`));
       const backend = timed(raw, (line) => this.output.appendLine(`[${p.name}] ${line}`));
       return backend;
     // Only a new connection is news; every later `get` must stay silent, or the tree that
