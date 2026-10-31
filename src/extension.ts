@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { Profile, defaultPort } from "./backend";
+import { applySshConfig, readSshConfig } from "./sshconfig";
 import { Connections, SCHEME, StoredHostKeys, profiles, uriFor } from "./backends";
 import { RemoteFileSystem } from "./provider";
 import { ProfileNode, RemoteTree, registerFileCommands } from "./view";
@@ -50,7 +51,10 @@ async function pickProfile(placeHolder: string): Promise<Profile | undefined> {
     return undefined;
   }
   const item = await vscode.window.showQuickPick(
-    all.map((p) => ({ label: p.name, description: `${p.protocol}://${p.username ? p.username + "@" : ""}${p.host}`, p })),
+    all.map((p) => {
+      const shown = applySshConfig(p, readSshConfig());
+      return { label: p.name, description: `${shown.protocol}://${shown.username ? shown.username + "@" : ""}${shown.host}`, p };
+    }),
     { placeHolder },
   );
   return item?.p;

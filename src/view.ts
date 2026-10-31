@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { applySshConfig, readSshConfig } from "./sshconfig";
 import { Profile, defaultPort, baseName, parentOf } from "./backend";
 import { Connections, profiles, uriFor } from "./backends";
 import { RemoteFileSystem } from "./provider";
@@ -12,9 +13,11 @@ export type Node = ProfileNode | EntryNode;
 export class ProfileNode extends vscode.TreeItem {
   constructor(readonly profile: Profile, readonly connected: boolean, viewRoot?: string) {
     super(profile.name, connected ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
-    const user = profile.username ? profile.username + "@" : "";
+    // show what is really connected to, not the alias from the settings
+    const shown = applySshConfig(profile, readSshConfig());
+    const user = shown.username ? shown.username + "@" : "";
     this.id = `profile:${profile.name}`;
-    this.description = `${profile.protocol}://${user}${profile.host}:${profile.port ?? defaultPort(profile)}`;
+    this.description = `${shown.protocol}://${user}${shown.host}:${defaultPort(shown)}`;
     if (viewRoot) this.description += ` · zeigt ${viewRoot}`;
     this.tooltip = connected ? "Verbunden" : "Nicht verbunden (Klick verbindet)";
     this.contextValue = connected ? "profile.connected" : "profile.disconnected";
