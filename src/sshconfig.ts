@@ -75,8 +75,9 @@ export function applySshConfig(p: Profile, text: string | undefined): Profile {
   return {
     ...p,
     host: h.hostName ?? p.host,
-    port: p.port ?? h.port,
-    username: p.username ?? h.user,
-    privateKeyPath: p.privateKeyPath ?? (p.useAgent ? undefined : h.identityFile?.replace(/%d/g, homedir())),
+    port: p.port || h.port,
+    // an empty string in the settings counts as "not set", like a missing key
+    username: p.username || h.user,
+    privateKeyPath: p.privateKeyPath || (p.useAgent ? undefined : h.identityFile?.replace(/%d/g, homedir())),
   };
 }

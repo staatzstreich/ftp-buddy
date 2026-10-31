@@ -49,3 +49,9 @@ test("sshconfig: with the agent the config's IdentityFile is not used", () => {
   const r = applySshConfig({ name: "n", protocol: "sftp", host: "shop", useAgent: true }, config);
   assert.equal(r.privateKeyPath, undefined);
 });
+
+test("sshconfig: empty strings in the profile count as not set", () => {
+  const r = applySshConfig({ name: "n", protocol: "sftp", host: "shop", username: "", privateKeyPath: "" }, config);
+  assert.equal(r.username, "deploy");
+  assert.equal(r.privateKeyPath, "~/.ssh/shop_key");
+});

@@ -28,6 +28,7 @@ export class SftpBackend implements Backend {
     if (p.useAgent && !process.env.SSH_AUTH_SOCK) {
       throw new RemoteError("Unavailable", "Kein ssh-agent gefunden (SSH_AUTH_SOCK ist nicht gesetzt)");
     }
+    if (!p.username) throw new RemoteError("Unavailable", "Kein Benutzer: im Profil `username` setzen oder `User` in ~/.ssh/config");
     const c = new SftpClient();
     // ssh2's own timeout also runs while the user reads the host key dialog, so it is switched off
     // there and replaced by one that stops the clock during the question.
