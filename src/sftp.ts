@@ -24,8 +24,11 @@ export class SftpBackend implements Backend {
   constructor(private profile: Profile, private password: string | undefined, private hostKeys: HostKeys, private handshakeLimitMs = 20000) {}
 
   private async connect(): Promise<Sftp> {
-    const c = new SftpClient();
     const p = this.profile;
+    if (p.useAgent && !process.env.SSH_AUTH_SOCK) {
+      throw new RemoteError("Unavailable", "Kein ssh-agent gefunden (SSH_AUTH_SOCK ist nicht gesetzt)");
+    }
+    const c = new SftpClient();
     // ssh2's own timeout also runs while the user reads the host key dialog, so it is switched off
     // there and replaced by one that stops the clock during the question.
     let waiting = 0;
@@ -45,7 +48,8 @@ export class SftpBackend implements Backend {
       host: p.host,
       port: defaultPort(p),
       username: p.username,
-      password: p.privateKeyPath ? undefined : this.password,
+      agent: p.useAgent ? process.env.SSH_AUTH_SOCK : undefined,
+      password: p.privateKeyPath || p.useAgent ? undefined : this.password,
       privateKey: p.privateKeyPath ? readFileSync(expand(p.privateKeyPath)) : undefined,
       passphrase: p.privateKeyPath ? this.password : undefined,
       readyTimeout: 10 * 60 * 1000,

@@ -25,6 +25,8 @@ export interface Profile {
   port?: number;
   username?: string;
   privateKeyPath?: string;
+  /** SFTP only: log in with the keys of the running ssh-agent (`SSH_AUTH_SOCK`) instead of a password or key file. */
+  useAgent?: boolean;
   remotePath?: string;
   /** The local folder that matches `remotePath` (or the login folder): uploads and downloads keep the structure. */
   localPath?: string;

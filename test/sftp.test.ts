@@ -123,3 +123,28 @@ test("sftp: a server that never answers times out", { skip: !SSHD || !SFTP_SERVE
     silent.close();
   }
 });
+
+test("sftp: keys from the ssh-agent are used", { skip: !SSHD || !SFTP_SERVER }, async () => {
+  const out = execFileSync("ssh-agent", ["-s"]).toString();
+  const sock = /SSH_AUTH_SOCK=([^;]+);/.exec(out)?.[1];
+  const pid = /SSH_AGENT_PID=(\d+);/.exec(out)?.[1];
+  assert.ok(sock && pid);
+  const before = process.env.SSH_AUTH_SOCK;
+  try {
+    execFileSync("ssh-add", [join(dir, "id")], { env: { ...process.env, SSH_AUTH_SOCK: sock }, stdio: "ignore" });
+    process.env.SSH_AUTH_SOCK = sock;
+    const b = new SftpBackend({ name: "t", protocol: "sftp", host: "127.0.0.1", port, username: userInfo().username, useAgent: true }, undefined, new Memory());
+    try {
+      assert.ok((await b.home()).startsWith("/"));
+    } finally {
+      await b.close();
+    }
+    delete process.env.SSH_AUTH_SOCK;
+    const none = new SftpBackend({ name: "t", protocol: "sftp", host: "127.0.0.1", port, username: "x", useAgent: true }, undefined, new Memory());
+    await assert.rejects(none.home(), /ssh-agent/);
+  } finally {
+    if (before === undefined) delete process.env.SSH_AUTH_SOCK;
+    else process.env.SSH_AUTH_SOCK = before;
+    process.kill(Number(pid));
+  }
+});

@@ -69,9 +69,20 @@ Beispielprofil:
 ```json
 "ftpBuddy.profiles": [
   { "name": "Kunde Müller", "protocol": "ftps", "host": "ftp.example.com", "username": "web123", "remotePath": "/htdocs" },
-  { "name": "Server", "protocol": "sftp", "host": "example.org", "username": "benutzer", "privateKeyPath": "~/.ssh/id_ed25519" }
+  { "name": "Server", "protocol": "sftp", "host": "example.org", "username": "benutzer", "privateKeyPath": "~/.ssh/id_ed25519" },
+  { "name": "Per Agent", "protocol": "sftp", "host": "example.org", "username": "benutzer", "useAgent": true },
+  { "name": "Per Config", "protocol": "sftp", "host": "shop" }
 ]
 ```
+
+## SSH-Agent und `~/.ssh/config`
+
+- **`"useAgent": true`** nimmt die Schlüssel des laufenden ssh-agent (`SSH_AUTH_SOCK`). Dort können auch Schlüssel mit Passphrase
+  liegen (`ssh-add --apple-use-keychain`); FTP Buddy fragt dann nach nichts. Ohne Agent kommt eine klare Fehlermeldung.
+- Bei SFTP darf `host` ein **Alias aus `~/.ssh/config`** sein. Daraus werden `HostName`, `Port`, `User` und `IdentityFile` übernommen;
+  was im Profil selbst steht, hat Vorrang. Unterstützt: `Host` mit `*`, `?` und `!`-Mustern, wie bei ssh gilt der erste Treffer.
+  Nicht unterstützt: `Match`, `Include`, `ProxyJump`.
+- Schlüsseldateien (`privateKeyPath`/`IdentityFile`) werden nur ohne Passphrase gelesen; für Schlüssel mit Passphrase den Agenten nehmen.
 
 ## FTPS und Zertifikate
 
@@ -92,7 +103,7 @@ nachvollziehen lassen.
 - Kein Terminal, keine Language Server auf Remote-Dateien (viele Erweiterungen sind auf `file:` beschränkt).
 - Große Dateien werden komplett in den Speicher gelesen; Ordner löschen geht Datei für Datei.
 - FTP: keine Zeitstempel bei Servern ohne MLSD; Symlinks werden durch Auflisten als Ordner erkannt.
-- Nur Passwort oder Schlüssel (mit oder ohne Passphrase); kein ssh-agent, kein `~/.ssh/config`.
+- SFTP: Passwort, Schlüsseldatei ohne Passphrase oder ssh-agent; `~/.ssh/config` nur mit `Host`/`HostName`/`Port`/`User`/`IdentityFile` (kein `Match`, `Include`, `ProxyJump`).
 - Nicht im echten VS Code-Fenster geprüft, nur die Protokollschicht per Tests (siehe unten).
 
 ## Installieren

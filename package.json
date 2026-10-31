@@ -168,7 +168,8 @@
                 ]
               },
               "host": {
-                "type": "string"
+                "type": "string",
+                "description": "Bei SFTP auch ein Alias aus ~/.ssh/config (HostName, Port, User, IdentityFile)"
               },
               "port": {
                 "type": "number",
@@ -180,7 +181,11 @@
               },
               "privateKeyPath": {
                 "type": "string",
-                "description": "Nur SFTP, z. B. ~/.ssh/id_ed25519"
+                "description": "Nur SFTP, z. B. ~/.ssh/id_ed25519; leer = IdentityFile aus ~/.ssh/config"
+              },
+              "useAgent": {
+                "type": "boolean",
+                "description": "Nur SFTP: Schlüssel des laufenden ssh-agent verwenden (SSH_AUTH_SOCK)"
               },
               "remotePath": {
                 "type": "string",

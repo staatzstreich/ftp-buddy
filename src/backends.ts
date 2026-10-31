@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { Backend, HostKeys, Profile, once, timed } from "./backend";
 import { FtpBackend } from "./ftp";
 import { SftpBackend } from "./sftp";
+import { applySshConfig, readSshConfig } from "./sshconfig";
 
 export const SCHEME = "ftpbuddy";
 
@@ -70,9 +71,9 @@ export class Connections {
 
   /** A password is asked for only when the profile needs one and none is saved. */
   private async password(p: Profile): Promise<string | undefined> {
-    const needs = p.protocol === "sftp" ? !p.privateKeyPath : !!p.username;
+    const needs = p.protocol === "sftp" ? !p.privateKeyPath && !p.useAgent : !!p.username;
     if (!needs) {
-      this.output.appendLine(`[${p.name}] Anmeldung ohne Passwort (${p.protocol === "sftp" ? "Schlüssel " + p.privateKeyPath : "anonym"})`);
+      this.output.appendLine(`[${p.name}] Anmeldung ohne Passwort (${p.protocol === "sftp" ? (p.useAgent ? "ssh-agent" : "Schlüssel " + p.privateKeyPath) : "anonym"})`);
       return undefined;
     }
     const saved = await this.secrets.get(secretKey(p.name));
@@ -91,7 +92,7 @@ export class Connections {
   }
 
   get(authority: string): Promise<Backend> {
-    const p = this.profileOf(authority);
+    const p = applySshConfig(this.profileOf(authority), readSshConfig());
     return once(this.open, p.name, async () => {
       const password = await this.password(p);
       const raw = p.protocol === "sftp" ? new SftpBackend(p, password, this.hostKeys) : new FtpBackend(p, password, this.hostKeys, (line) => this.output.appendLine(`[${p.name}] ${line}`));
