@@ -109,3 +109,34 @@ test("ftps: a certificate that differs from the remembered one is refused", asyn
   await assert.rejects(b.home(), /nicht vertraut/);
   await b.close();
 });
+
+test("ftps-implicit: encrypted from the first byte, certificate confirmed once", async () => {
+  const iport = await freePort();
+  const implicitServer = new FtpSrv({
+    url: `ftps://127.0.0.1:${iport}`,
+    pasv_url: "127.0.0.1",
+    pasv_min: 46000 + (iport % 1000),
+    pasv_max: 47000 + (iport % 1000),
+    anonymous: false,
+    tls: { key: readFileSync(join(certDir, "k.pem")), cert: readFileSync(join(certDir, "c.pem")) },
+    log: bunyan.createLogger({ name: "ftps-implicit-test", level: 60 }),
+  });
+  implicitServer.on("login", (_d: unknown, ok: (r: { root: string }) => void) => ok({ root }));
+  await implicitServer.listen();
+  const keys = new Asked(true);
+  const b = new FtpBackend({ name: "t", protocol: "ftps-implicit", host: "127.0.0.1", port: iport, username: "u" }, "p", keys);
+  try {
+    assert.ok((await b.home()).startsWith("/"));
+    await b.write("/impl.txt", Buffer.from("implizit"));
+    assert.equal(Buffer.from(await b.read("/impl.txt")).toString(), "implizit");
+    await b.remove("/impl.txt", false);
+    assert.equal(keys.asked.length, 1);
+  } finally {
+    await b.close();
+    await implicitServer.close();
+  }
+  // Without a way to ask, the untrusted certificate is refused here too.
+  const strictOnly = new FtpBackend({ name: "t", protocol: "ftps-implicit", host: "127.0.0.1", port: iport, username: "u" }, "p");
+  await assert.rejects(strictOnly.home());
+  await strictOnly.close();
+});

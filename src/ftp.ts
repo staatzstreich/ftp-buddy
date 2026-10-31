@@ -84,7 +84,17 @@ export class FtpBackend implements Backend {
       await c.useDefaultSettings();
       return c;
     };
-    if (p.protocol !== "ftps") {
+    // Explicit FTPS starts in the clear and switches with AUTH TLS; implicit FTPS (port 990) is encrypted from the first byte.
+    const implicit = p.protocol === "ftps-implicit";
+    const open = async (c: Client, options: ConnectionOptions) => {
+      if (implicit) {
+        await c.connectImplicitTLS(host, port, options);
+      } else {
+        await c.connect(host, port);
+        await c.useTLS(options);
+      }
+    };
+    if (p.protocol !== "ftps" && !implicit) {
       const c = this.newClient();
       try {
         await c.connect(host, port);
@@ -97,8 +107,7 @@ export class FtpBackend implements Backend {
 
     const strict = this.newClient();
     try {
-      await strict.connect(host, port);
-      await strict.useTLS({ host });
+      await open(strict, { host });
       return await login(strict);
     } catch (e) {
       strict.close();
@@ -108,9 +117,8 @@ export class FtpBackend implements Backend {
 
     const c = this.newClient();
     try {
-      await c.connect(host, port);
       // Look at the certificate, but send nothing secret until it is confirmed.
-      await c.useTLS({ host, rejectUnauthorized: false });
+      await open(c, { host, rejectUnauthorized: false });
       const cert = (c.ftp.socket as TLSSocket).getPeerCertificate();
       const fingerprint = fingerprintOf(cert.raw);
       this.log(`tls  Zertifikat ${fingerprint}, ausgestellt für ${cert.subject?.CN ?? "?"} von ${cert.issuer?.CN ?? "?"}`);

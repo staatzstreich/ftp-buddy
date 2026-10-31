@@ -2,7 +2,7 @@
   "name": "ftp-buddy",
   "displayName": "FTP Buddy",
   "description": "SFTP, FTP und FTPS in der Seitenleiste: durchsuchen, bearbeiten, hoch- und herunterladen, ohne lokale Kopie.",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "publisher": "staatzstreich",
   "license": "MIT",
   "private": true,
@@ -163,7 +163,8 @@
                 "enum": [
                   "sftp",
                   "ftp",
-                  "ftps"
+                  "ftps",
+                  "ftps-implicit"
                 ]
               },
               "host": {
@@ -171,7 +172,7 @@
               },
               "port": {
                 "type": "number",
-                "description": "Standard: 22 (sftp), 21 (ftp/ftps)"
+                "description": "Standard: 22 (sftp), 21 (ftp/ftps), 990 (ftps-implicit)"
               },
               "username": {
                 "type": "string",

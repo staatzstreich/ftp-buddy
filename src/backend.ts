@@ -20,7 +20,7 @@ export class RemoteError extends Error {
 
 export interface Profile {
   name: string;
-  protocol: "sftp" | "ftp" | "ftps";
+  protocol: "sftp" | "ftp" | "ftps" | "ftps-implicit";
   host: string;
   port?: number;
   username?: string;
@@ -44,7 +44,7 @@ export interface Backend {
   close(): Promise<void>;
 }
 
-export const defaultPort = (p: Profile): number => p.port ?? (p.protocol === "sftp" ? 22 : 21);
+export const defaultPort = (p: Profile): number => p.port ?? (p.protocol === "sftp" ? 22 : p.protocol === "ftps-implicit" ? 990 : 21);
 
 export function parentOf(path: string): string {
   const i = path.lastIndexOf("/");

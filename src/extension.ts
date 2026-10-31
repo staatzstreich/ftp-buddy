@@ -92,7 +92,8 @@ async function addProfile() {
     [
       { label: "SFTP", description: "über SSH", v: "sftp" },
       { label: "FTP", description: "unverschlüsselt", v: "ftp" },
-      { label: "FTPS", description: "FTP mit TLS (explizit)", v: "ftps" },
+      { label: "FTPS (explizit)", description: "FTP mit TLS, Port 21 (AUTH TLS)", v: "ftps" },
+      { label: "FTPS (implizit)", description: "von Anfang an verschlüsselt, meist Port 990", v: "ftps-implicit" },
     ],
     { placeHolder: "Protokoll" },
   );
