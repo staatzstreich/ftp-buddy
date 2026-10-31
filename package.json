@@ -2,7 +2,7 @@
   "name": "ftp-buddy",
   "displayName": "FTP Buddy",
   "description": "SFTP, FTP und FTPS in der Seitenleiste: durchsuchen, bearbeiten, hoch- und herunterladen, ohne lokale Kopie.",
-  "version": "0.11.1",
+  "version": "0.11.2",
   "publisher": "staatzstreich",
   "license": "MIT",
   "private": true,
