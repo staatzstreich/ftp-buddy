@@ -27,6 +27,15 @@ export async function contract(b: Backend, dir: string) {
   assert.equal(names.get("hello.txt")?.kind, "file");
   assert.equal(names.get("all.bin")?.size, 256);
 
+  // ensureDir creates a folder with all parents that are missing.
+  await b.ensureDir(`${dir}/tief/verschachtelt`);
+  assert.equal((await b.stat(`${dir}/tief/verschachtelt`))?.kind, "dir");
+  await b.write(`${dir}/tief/verschachtelt/n.txt`, Buffer.from("n"));
+  assert.equal(text(await b.read(`${dir}/tief/verschachtelt/n.txt`)), "n");
+  await b.remove(`${dir}/tief/verschachtelt/n.txt`, false);
+  await b.remove(`${dir}/tief/verschachtelt`, true);
+  await b.remove(`${dir}/tief`, true);
+
   assert.equal((await b.stat(`${dir}/sub`))?.kind, "dir");
   assert.equal((await b.stat(`${dir}/hello.txt`))?.size, 1);
   assert.equal(await b.stat(`${dir}/missing`), undefined);

@@ -150,6 +150,10 @@ export class SftpBackend implements Backend {
     await this.run(path, (c) => c.mkdir(path, false));
   }
 
+  async ensureDir(path: string): Promise<void> {
+    await this.run(path, (c) => c.mkdir(path, true));
+  }
+
   async remove(path: string, isDir: boolean): Promise<void> {
     await this.run(path, (c) => (isDir ? c.rmdir(path, false) : c.delete(path)));
   }

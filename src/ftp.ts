@@ -227,6 +227,12 @@ export class FtpBackend implements Backend {
     this.cache.delete(parentOf(path));
   }
 
+  async ensureDir(path: string): Promise<void> {
+    await this.enqueue(path, (c) => c.ensureDir(path));
+    // Any listing could be stale now: the folder and its parents may all be new.
+    this.cache.clear();
+  }
+
   async remove(path: string, isDir: boolean): Promise<void> {
     await this.enqueue(path, (c) => (isDir ? c.removeEmptyDir(path) : c.remove(path)).then(() => undefined));
     this.cache.delete(parentOf(path));

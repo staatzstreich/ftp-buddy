@@ -159,6 +159,24 @@ test("transfer over sftp: folders and files go up and come back unchanged", { sk
   }
 });
 
+test("transfer: an upload creates the missing target folder", async () => {
+  const b = new FtpBackend({ name: "t", protocol: "ftp", host: "127.0.0.1", port: ftpPort, username: "u" }, "p");
+  try {
+    const src = mkdtempSync(join(tmpdir(), "craft-tr-src-"));
+    cleanup.push(src);
+    writeFileSync(join(src, "f.txt"), "f");
+    const res = await upload(b, [join(src, "f.txt")], "/neu/tief", hooks());
+    assert.deepEqual(res.failed, []);
+    assert.equal(res.done, 1);
+    assert.equal(Buffer.from(await b.read("/neu/tief/f.txt")).toString(), "f");
+    await b.remove("/neu/tief/f.txt", false);
+    await b.remove("/neu/tief", true);
+    await b.remove("/neu", true);
+  } finally {
+    await b.close();
+  }
+});
+
 test("transfer: a download creates the missing folders of its target", async () => {
   const b = new FtpBackend({ name: "t", protocol: "ftp", host: "127.0.0.1", port: ftpPort, username: "u" }, "p");
   try {

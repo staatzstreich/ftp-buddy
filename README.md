@@ -32,7 +32,8 @@ an die richtige Stelle ziehen.
 
 Zusätzlich gibt es im Baum bei Ordnern **Hochladen …** mit der Dateiauswahl des Mac, falls du etwas von außerhalb des Workspaces brauchst.
 Beides zeigt einen Fortschritt mit „Abbrechen“. Gibt es eine Datei schon, fragt ein Dialog:
-Überschreiben, Überspringen, Alle überschreiben, Alle überspringen. Ordner werden samt Inhalt übertragen, leere Ordner auch;
+Überschreiben, Überspringen, Alle überschreiben, Alle überspringen. Fehlt der Zielordner auf dem Server, wird er angelegt
+(auch mehrere Ebenen, etwa bei der Ordner-Zuordnung). Ordner werden samt Inhalt übertragen, leere Ordner auch;
 symbolische Links werden beim Hochladen übersprungen.
 
 Oben im Feld: Aktualisieren, Profil anlegen, Einstellungen, Zeitmessung. Rechtsklick auf ein Profil: gespeichertes Passwort vergessen.

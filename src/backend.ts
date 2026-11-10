@@ -41,6 +41,8 @@ export interface Backend {
   read(path: string): Promise<Uint8Array>;
   write(path: string, data: Uint8Array): Promise<void>;
   mkdir(path: string): Promise<void>;
+  /** Creates `path` with any parents that are missing. */
+  ensureDir(path: string): Promise<void>;
   remove(path: string, isDir: boolean): Promise<void>;
   rename(from: string, to: string): Promise<void>;
   close(): Promise<void>;
@@ -80,6 +82,7 @@ export function timed(inner: Backend, log: (line: string) => void): Backend {
     read: (p) => t(`read ${p}`, () => inner.read(p)),
     write: (p, d) => t(`write ${p} (${d.length} B)`, () => inner.write(p, d)),
     mkdir: (p) => t(`mkdir ${p}`, () => inner.mkdir(p)),
+    ensureDir: (p) => t(`ensureDir ${p}`, () => inner.ensureDir(p)),
     remove: (p, d) => t(`remove ${p}`, () => inner.remove(p, d)),
     rename: (a, b) => t(`rename ${a} -> ${b}`, () => inner.rename(a, b)),
     close: () => inner.close(),

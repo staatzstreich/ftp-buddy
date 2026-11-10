@@ -48,6 +48,15 @@ export async function upload(b: Backend, locals: string[], remoteDir: string, ho
   for (const l of locals) await walkLocal(l, basename(l), files, dirs);
   const total = files.length;
 
+  // The target folder itself may be missing (a mapped upload lands in a folder the server does not have yet).
+  if (hooks.cancelled()) return { ...result, cancelled: true };
+  try {
+    if (!(await b.stat(remoteDir, true))) await b.ensureDir(remoteDir);
+  } catch (e) {
+    result.failed.push({ path: remoteDir, error: message(e) });
+    return result;
+  }
+
   // Folders first, shortest first, so every parent exists.
   for (const d of dirs.sort((a, c) => a.length - c.length)) {
     if (hooks.cancelled()) return { ...result, cancelled: true };
