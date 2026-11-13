@@ -46,6 +46,13 @@ export async function contract(b: Backend, dir: string) {
   assert.equal(await b.stat(`${dir}/hello.txt`), undefined);
   assert.equal(text(await b.read(`${dir}/sub/moved.txt`)), "x");
 
+  // Permissions: SFTP and FTP servers on Unix report them and accept a change.
+  await b.chmod(`${dir}/sub/moved.txt`, 0o640);
+  assert.equal((await b.stat(`${dir}/sub/moved.txt`, true))?.mode, 0o640);
+  assert.equal((await b.list(`${dir}/sub`)).find((e) => e.name === "moved.txt")?.mode, 0o640);
+  await b.chmod(`${dir}/sub/moved.txt`, 0o755);
+  assert.equal((await b.stat(`${dir}/sub/moved.txt`, true))?.mode, 0o755);
+
   await b.remove(`${dir}/sub/moved.txt`, false);
   await b.remove(`${dir}/sub`, true);
   assert.equal(await b.stat(`${dir}/sub`), undefined);

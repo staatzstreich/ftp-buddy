@@ -18,7 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
     { dispose: () => void conns.drop() },
     treeView,
     tree,
-    ...registerFileCommands(tree, conns, () => treeView.selection),
+    ...registerFileCommands(tree, conns, fs, () => treeView.selection),
     vscode.commands.registerCommand("ftpBuddy.connect", async (item?: ProfileNode) => {
       const node = await connect(conns, output, item?.profile);
       if (node) await treeView.reveal(node, { expand: true, focus: false, select: false }).then(undefined, () => undefined);

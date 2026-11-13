@@ -8,7 +8,42 @@ export interface Entry {
   size: number;
   /** Milliseconds since the epoch. */
   mtime: number;
+  /** Unix permission bits (`0o755`, with setuid/setgid/sticky); `undefined` when the server does not tell. */
+  mode?: number;
 }
+
+/** `rwxr-xr-x` (or `drwxr-xr-x`, as in a listing) to `0o755`; `undefined` when it is not such a string. */
+export function parseSymbolic(s: string): number | undefined {
+  const m = /^[-dlcbps]?([r-][w-][xsS-])([r-][w-][xsS-])([r-][w-][xtT-])$/.exec(s);
+  if (!m) return undefined;
+  let mode = 0;
+  m.slice(1).forEach((triple, i) => {
+    const bit = (c: string, on: string) => (c === on ? 1 : 0);
+    const [r = "", w = "", x = ""] = triple;
+    const digit = bit(r, "r") * 4 + bit(w, "w") * 2 + (x === "x" || x === "s" || x === "t" ? 1 : 0);
+    mode |= digit << (6 - 3 * i);
+    if (i === 0 && (x === "s" || x === "S")) mode |= 0o4000;
+    if (i === 1 && (x === "s" || x === "S")) mode |= 0o2000;
+    if (i === 2 && (x === "t" || x === "T")) mode |= 0o1000;
+  });
+  return mode;
+}
+
+/** `0o755` to `rwxr-xr-x`. */
+export function formatSymbolic(mode: number): string {
+  const triple = (d: number, special: boolean, on: string) => {
+    const x = d & 1 ? (special ? on : "x") : special ? on.toUpperCase() : "-";
+    return (d & 4 ? "r" : "-") + (d & 2 ? "w" : "-") + x;
+  };
+  return (
+    triple((mode >> 6) & 7, !!(mode & 0o4000), "s") +
+    triple((mode >> 3) & 7, !!(mode & 0o2000), "s") +
+    triple(mode & 7, !!(mode & 0o1000), "t")
+  );
+}
+
+/** `0o644` to `644`; `0o4755` to `4755`. */
+export const formatOctal = (mode: number): string => (mode & 0o7777).toString(8).padStart(3, "0");
 
 export type ErrorCode = "NotFound" | "Exists" | "NoPermission" | "Unavailable";
 
@@ -45,6 +80,8 @@ export interface Backend {
   ensureDir(path: string): Promise<void>;
   remove(path: string, isDir: boolean): Promise<void>;
   rename(from: string, to: string): Promise<void>;
+  /** Sets the permission bits (`0o644`). FTP servers may refuse: `SITE CHMOD` is not part of every server. */
+  chmod(path: string, mode: number): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -85,6 +122,7 @@ export function timed(inner: Backend, log: (line: string) => void): Backend {
     ensureDir: (p) => t(`ensureDir ${p}`, () => inner.ensureDir(p)),
     remove: (p, d) => t(`remove ${p}`, () => inner.remove(p, d)),
     rename: (a, b) => t(`rename ${a} -> ${b}`, () => inner.rename(a, b)),
+    chmod: (p, m) => t(`chmod ${formatOctal(m)} ${p}`, () => inner.chmod(p, m)),
     close: () => inner.close(),
   };
 }

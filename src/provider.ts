@@ -25,6 +25,25 @@ export class RemoteFileSystem implements vscode.FileSystemProvider {
 
   constructor(private conns: Connections) {}
 
+  /** Permission bits seen in the last listing of each folder, by URI, for the side bar. */
+  private modes = new Map<string, number>();
+
+  modeOf(uri: vscode.Uri): number | undefined {
+    return this.modes.get(uri.toString());
+  }
+
+  /** Current permission bits, asked from the server (not from the last listing). */
+  currentMode(uri: vscode.Uri): Promise<number | undefined> {
+    return this.with(uri, async (b, path) => (await b.stat(path, true))?.mode);
+  }
+
+  chmod(uri: vscode.Uri, mode: number): Promise<void> {
+    return this.with(uri, async (b, path) => {
+      await b.chmod(path, mode);
+      this.modes.set(uri.toString(), mode);
+    });
+  }
+
   watch(): vscode.Disposable {
     // Remote folders are not watched; refresh the Explorer to see changes made elsewhere.
     return new vscode.Disposable(() => undefined);
@@ -65,6 +84,9 @@ export class RemoteFileSystem implements vscode.FileSystemProvider {
           .filter((e) => e.name !== "." && e.name !== "..")
           .map(async (e): Promise<[string, vscode.FileType]> => {
             const dir = e.kind === "link" ? await this.linkIsDir(b, join(path, e.name)) : undefined;
+            const key = uri.with({ path: join(path, e.name) }).toString();
+            if (e.mode === undefined) this.modes.delete(key);
+            else this.modes.set(key, e.mode);
             return [e.name, typeOf(e, dir)];
           }),
       );

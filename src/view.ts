@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { applySshConfig, readSshConfig } from "./sshconfig";
-import { Profile, defaultPort, baseName, parentOf } from "./backend";
+import { Profile, defaultPort, baseName, parentOf, formatOctal, formatSymbolic, parseSymbolic } from "./backend";
 import { Connections, profiles, uriFor } from "./backends";
 import { RemoteFileSystem } from "./provider";
 import { Decision, Result, download, upload } from "./transfer";
@@ -29,12 +29,16 @@ export class ProfileNode extends vscode.TreeItem {
 }
 
 export class EntryNode extends vscode.TreeItem {
-  constructor(readonly profile: Profile, readonly path: string, readonly isDir: boolean) {
+  constructor(readonly profile: Profile, readonly path: string, readonly isDir: boolean, mode?: number) {
     super(baseName(path) || "/", isDir ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
     this.uri = uriFor(profile, path);
     this.resourceUri = this.uri;
     this.id = this.uri.toString();
     this.contextValue = isDir ? "remote.dir" : "remote.file";
+    if (mode !== undefined) {
+      this.description = formatOctal(mode);
+      this.tooltip = `${path}\n${formatSymbolic(mode)} (${formatOctal(mode)})`;
+    }
     if (!isDir) this.command = { command: "vscode.open", title: "Öffnen", arguments: [this.uri] };
   }
   readonly uri: vscode.Uri;
@@ -119,7 +123,10 @@ export class RemoteTree implements vscode.TreeDataProvider<Node>, vscode.Disposa
       const dirs = (t: vscode.FileType) => t === vscode.FileType.Directory;
       return entries
         .sort((a, b) => Number(dirs(b[1])) - Number(dirs(a[1])) || a[0].localeCompare(b[0], undefined, { numeric: true }))
-        .map(([name, type]) => new EntryNode(p, (path.endsWith("/") ? path : path + "/") + name, dirs(type)));
+        .map(([name, type]) => {
+          const full = (path.endsWith("/") ? path : path + "/") + name;
+          return new EntryNode(p, full, dirs(type), this.fs.modeOf(uriFor(p, full)));
+        });
     } catch (e) {
       vscode.window.showErrorMessage(`Ordner ${path} konnte nicht gelesen werden: ${e instanceof Error ? e.message : e}`);
       return [];
@@ -135,7 +142,7 @@ const uriOf = (n: EntryNode) => n.uri;
 const resolveLocal = (p: string) => resolve(expandHome(p));
 
 /** New file, new folder, rename and delete on a node of the tree. */
-export function registerFileCommands(tree: RemoteTree, conns: Connections, selection: () => readonly Node[]): vscode.Disposable[] {
+export function registerFileCommands(tree: RemoteTree, conns: Connections, fs: RemoteFileSystem, selection: () => readonly Node[]): vscode.Disposable[] {
   const dirOf = (n: EntryNode) => (n.isDir ? n.path : parentOf(n.path));
   const join = (dir: string, name: string) => (dir.endsWith("/") ? dir : dir + "/") + name;
   const name = (prompt: string, value?: string) =>
@@ -376,6 +383,24 @@ export function registerFileCommands(tree: RemoteTree, conns: Connections, selec
         "Löschen",
       );
       if (ok === "Löschen") await run("Löschen", () => vscode.workspace.fs.delete(uriOf(n), { recursive: true }));
+    }),
+    vscode.commands.registerCommand("ftpBuddy.chmod", async (n: EntryNode) => {
+      let current: number | undefined;
+      try {
+        current = await fs.currentMode(uriOf(n));
+      } catch {
+        // the prompt still works without a preset
+      }
+      const input = await vscode.window.showInputBox({
+        prompt: `Rechte für „${baseName(n.path)}“ (oktal, z. B. 644 oder 755${current === undefined ? "" : "; jetzt " + formatSymbolic(current)})`,
+        value: current === undefined ? undefined : formatOctal(current),
+        validateInput: (v) => (/^[0-7]{3,4}$/.test(v.trim()) || parseSymbolic(v.trim()) !== undefined ? undefined : "Oktalzahl mit 3 oder 4 Ziffern, z. B. 644"),
+      });
+      if (input === undefined) return;
+      const v = input.trim();
+      const mode = /^[0-7]{3,4}$/.test(v) ? parseInt(v, 8) : parseSymbolic(v);
+      if (mode === undefined || mode === current) return;
+      await run("Rechte ändern", () => fs.chmod(uriOf(n), mode));
     }),
     vscode.commands.registerCommand("ftpBuddy.copyPath", (n: EntryNode) => vscode.env.clipboard.writeText(n.path)),
     vscode.commands.registerCommand("ftpBuddy.refresh", () => tree.refresh()),

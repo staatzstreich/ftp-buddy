@@ -36,6 +36,7 @@ function toEntry(i: FileInfo): Entry {
     kind: i.type === FileType.Directory ? "dir" : i.type === FileType.SymbolicLink ? "link" : "file",
     size: i.size,
     mtime: i.modifiedAt?.getTime() ?? 0,
+    mode: i.permissions ? (i.permissions.user << 6) | (i.permissions.group << 3) | i.permissions.world : undefined,
   };
 }
 
@@ -243,6 +244,11 @@ export class FtpBackend implements Backend {
     await this.enqueue(from, (c) => c.rename(from, to).then(() => undefined));
     this.cache.delete(parentOf(from));
     this.cache.delete(parentOf(to));
+  }
+
+  async chmod(path: string, mode: number): Promise<void> {
+    await this.enqueue(path, (c) => c.send(`SITE CHMOD ${(mode & 0o7777).toString(8)} ${path}`).then(() => undefined));
+    this.cache.delete(parentOf(path));
   }
 
   async close(): Promise<void> {

@@ -2,7 +2,7 @@ import SftpClient from "ssh2-sftp-client";
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { createHash } from "node:crypto";
-import { Backend, Entry, HostKeys, Profile, RemoteError, defaultPort } from "./backend";
+import { Backend, Entry, HostKeys, Profile, RemoteError, defaultPort, parseSymbolic } from "./backend";
 
 type Sftp = InstanceType<typeof SftpClient>;
 
@@ -119,6 +119,7 @@ export class SftpBackend implements Backend {
       kind: i.type === "d" ? "dir" : i.type === "l" ? "link" : "file",
       size: i.size,
       mtime: i.modifyTime,
+      mode: parseSymbolic(((i as { longname?: string }).longname ?? "").split(/\s+/)[0] ?? ""),
     }));
   }
 
@@ -130,6 +131,7 @@ export class SftpBackend implements Backend {
         kind: s.isDirectory ? "dir" : "file",
         size: s.size,
         mtime: s.modifyTime,
+        mode: s.mode & 0o7777,
       };
     } catch (e) {
       if (e instanceof RemoteError && e.code === "NotFound") return undefined;
@@ -160,6 +162,10 @@ export class SftpBackend implements Backend {
 
   async rename(from: string, to: string): Promise<void> {
     await this.run(from, (c) => c.rename(from, to));
+  }
+
+  async chmod(path: string, mode: number): Promise<void> {
+    await this.run(path, (c) => c.chmod(path, mode));
   }
 
   async close(): Promise<void> {
