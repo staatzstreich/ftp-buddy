@@ -2,7 +2,7 @@
   "name": "ftp-buddy",
   "displayName": "FTP Buddy",
   "description": "SFTP, FTP und FTPS in der Seitenleiste: durchsuchen, bearbeiten, hoch- und herunterladen, ohne lokale Kopie.",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "publisher": "staatzstreich",
   "license": "MIT",
   "private": true,
@@ -37,6 +37,16 @@
         "title": "Profile verwalten …",
         "category": "FTP Buddy",
         "icon": "$(gear)"
+      },
+      {
+        "command": "ftpBuddy.renameGroup",
+        "title": "Gruppe umbenennen …",
+        "category": "FTP Buddy"
+      },
+      {
+        "command": "ftpBuddy.deleteGroup",
+        "title": "Gruppe löschen …",
+        "category": "FTP Buddy"
       },
       {
         "command": "ftpBuddy.editProfiles",
@@ -278,6 +288,16 @@
           "group": "inline"
         },
         {
+          "command": "ftpBuddy.renameGroup",
+          "when": "view == ftpBuddy.profiles && viewItem == group",
+          "group": "8_manage@1"
+        },
+        {
+          "command": "ftpBuddy.deleteGroup",
+          "when": "view == ftpBuddy.profiles && viewItem == group",
+          "group": "8_manage@2"
+        },
+        {
           "command": "ftpBuddy.manageProfiles",
           "when": "view == ftpBuddy.profiles && viewItem =~ /^profile\\./",
           "group": "8_manage"
@@ -393,6 +413,14 @@
         },
         {
           "command": "ftpBuddy.delete",
+          "when": "false"
+        },
+        {
+          "command": "ftpBuddy.deleteGroup",
+          "when": "false"
+        },
+        {
+          "command": "ftpBuddy.renameGroup",
           "when": "false"
         },
         {

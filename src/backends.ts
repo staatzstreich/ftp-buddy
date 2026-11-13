@@ -10,6 +10,52 @@ export function profiles(): Profile[] {
   return vscode.workspace.getConfiguration("ftpBuddy").get<Profile[]>("profiles", []);
 }
 
+/**
+ * Gives every profile of group `from` the group `to` (an existing group of that name takes them in).
+ * Returns false when nothing was changed.
+ */
+export async function renameGroup(from: string, to: string): Promise<boolean> {
+  const next = to.trim();
+  if (next === "" || next === from) return false;
+  const all = profiles();
+  const changed = all.map((p) => (p.group?.trim() === from ? { ...p, group: next } : p));
+  await vscode.workspace.getConfiguration("ftpBuddy").update("profiles", changed, vscode.ConfigurationTarget.Global);
+  return true;
+}
+
+/** Asks for the new name of a group and applies it; the new name is returned, `undefined` when nothing changed. */
+export async function askRenameGroup(from: string): Promise<string | undefined> {
+  const known = new Set(profiles().map((p) => p.group?.trim()).filter((g): g is string => !!g));
+  const to = await vscode.window.showInputBox({
+    prompt: `Neuer Name für die Gruppe „${from}“`,
+    value: from,
+    validateInput: (v) => {
+      const t = v.trim();
+      if (t === "") return "Name fehlt";
+      return t !== from && known.has(t) ? `„${t}“ gibt es schon; die Profile würden zusammengelegt` : undefined;
+    },
+  });
+  return to !== undefined && (await renameGroup(from, to)) ? to.trim() : undefined;
+}
+
+/** Asks and then removes the group from its profiles; the profiles themselves stay, without a group. */
+export async function askDeleteGroup(name: string): Promise<boolean> {
+  const members = profiles().filter((p) => p.group?.trim() === name);
+  const ok = await vscode.window.showWarningMessage(
+    `Gruppe „${name}“ löschen?`,
+    { modal: true, detail: `Die ${members.length} Profile bleiben erhalten und stehen danach ohne Gruppe in der Liste.` },
+    "Gruppe löschen",
+  );
+  if (ok !== "Gruppe löschen") return false;
+  const changed = profiles().map((p) => {
+    if (p.group?.trim() !== name) return p;
+    const { group: _removed, ...rest } = p;
+    return rest;
+  });
+  await vscode.workspace.getConfiguration("ftpBuddy").update("profiles", changed, vscode.ConfigurationTarget.Global);
+  return true;
+}
+
 export function uriFor(profile: Profile, path: string): vscode.Uri {
   return vscode.Uri.from({ scheme: SCHEME, authority: encodeURIComponent(profile.name), path });
 }

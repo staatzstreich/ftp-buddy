@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { Profile } from "./backend";
-import { Connections, profiles } from "./backends";
+import { Connections, askDeleteGroup, askRenameGroup, profiles } from "./backends";
 
 /** The form for `ftpBuddy.profiles`: VS Code's own settings page can only show a JSON link for a list of objects. */
 export class ProfileEditor {
@@ -42,7 +42,7 @@ export class ProfileEditor {
     void this.panel.webview.postMessage({ type, text });
   }
 
-  private async onMessage(m: { type: string; original?: string; profile?: Profile; name?: string }) {
+  private async onMessage(m: { type: string; original?: string; profile?: Profile; name?: string; group?: string }) {
     const all = profiles();
     if (m.type === "ready") {
       this.post(this.initialSelect);
@@ -59,6 +59,11 @@ export class ProfileEditor {
       else await this.conns.drop(p.name);
       this.reply("saved", `„${p.name}“ gespeichert.`);
       this.post(p.name);
+    } else if (m.type === "renameGroup" && m.group) {
+      const to = await askRenameGroup(m.group);
+      if (to !== undefined) void this.panel.webview.postMessage({ type: "groupRenamed", from: m.group, to });
+    } else if (m.type === "deleteGroup" && m.group) {
+      if (await askDeleteGroup(m.group)) void this.panel.webview.postMessage({ type: "groupDeleted", group: m.group });
     } else if (m.type === "delete" && m.name !== undefined) {
       const ok = await vscode.window.showWarningMessage(`Profil „${m.name}“ löschen?`, { modal: true, detail: "Das gespeicherte Passwort wird ebenfalls vergessen." }, "Löschen");
       if (ok !== "Löschen") return;
@@ -122,6 +127,7 @@ function html(): string {
   .grp:hover { background: var(--vscode-list-hoverBackground); }
   .grp span { color: var(--vscode-descriptionForeground); font-weight: normal; }
   .in { padding-left: 28px; }
+  a { color: var(--vscode-textLink-foreground); }
   .item:hover { background: var(--vscode-list-hoverBackground); }
   .item.sel { background: var(--vscode-list-activeSelectionBackground); color: var(--vscode-list-activeSelectionForeground); }
   .item.sel small { color: inherit; opacity: .8; }
@@ -149,7 +155,7 @@ function html(): string {
 <main>
   <h1 id="title">Neues Profil</h1>
   <div class="row"><label for="name">Name</label><input type="text" id="name"><div class="hint">Erscheint in der Seitenleiste.</div></div>
-  <div class="row"><label for="group">Gruppe</label><select id="groupSel"></select><input type="text" id="group" placeholder="Name der neuen Gruppe" style="margin-top:6px"><div class="hint">Optional. Profile mit gleicher Gruppe stehen in der Seitenleiste zusammen in einem aufklappbaren Ordner.</div></div>
+  <div class="row"><label for="group">Gruppe</label><select id="groupSel"></select><input type="text" id="group" placeholder="Name der neuen Gruppe" style="margin-top:6px"><div class="hint">Optional. Profile mit gleicher Gruppe stehen in der Seitenleiste zusammen in einem aufklappbaren Ordner. <span id="groupLinks"><a href="#" id="renameGroup">Gruppe umbenennen …</a> · <a href="#" id="deleteGroup">Gruppe löschen …</a></span></div></div>
   <div class="row"><label for="protocol">Protokoll</label>
     <select id="protocol">
       <option value="sftp">SFTP (über SSH)</option>
@@ -204,6 +210,7 @@ function html(): string {
     const v = $("group").value.trim();
     sel.value = v === "" ? NONE : known.includes(v) ? v : NEW;
     $("group").style.display = sel.value === NEW ? "" : "none";
+    $("groupLinks").style.display = sel.value === NONE || sel.value === NEW ? "none" : "";
   }
   function renderList() {
     syncGroup();
@@ -240,6 +247,16 @@ function html(): string {
   $("del").onclick = () => original !== undefined && vscode.postMessage({ type: "delete", name: original });
   $("new").onclick = () => fill(undefined);
   $("protocol").onchange = protocolChanged;
+  $("renameGroup").onclick = (e) => {
+    e.preventDefault();
+    const g = $("groupSel").value;
+    if (g !== NONE && g !== NEW) vscode.postMessage({ type: "renameGroup", group: g });
+  };
+  $("deleteGroup").onclick = (e) => {
+    e.preventDefault();
+    const g = $("groupSel").value;
+    if (g !== NONE && g !== NEW) vscode.postMessage({ type: "deleteGroup", group: g });
+  };
   $("groupSel").onchange = () => {
     const v = $("groupSel").value;
     $("group").value = v === NEW ? "" : v;
@@ -257,6 +274,15 @@ function html(): string {
       else if (original !== undefined && !profiles.some((p) => p.name === original)) fill(profiles[0]);
       else if (original !== undefined && !dirty) fill(profiles.find((p) => p.name === original));
       else renderList();
+    } else if (m.type === "groupRenamed") {
+      // the form still shows the old name; the list arrives with the settings change
+      if ($("group").value.trim() === m.from) $("group").value = m.to;
+      if (closed.delete(m.from)) closed.add(m.to);
+      renderList();
+    } else if (m.type === "groupDeleted") {
+      if ($("group").value.trim() === m.group) $("group").value = "";
+      closed.delete(m.group);
+      renderList();
     } else if (m.type === "error") msg(m.text, true);
     else if (m.type === "saved") msg(m.text);
   });
