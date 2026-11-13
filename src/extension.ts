@@ -3,6 +3,7 @@ import { Profile, defaultPort } from "./backend";
 import { applySshConfig, readSshConfig } from "./sshconfig";
 import { Connections, SCHEME, StoredHostKeys, profiles, uriFor } from "./backends";
 import { RemoteFileSystem } from "./provider";
+import { ProfileEditor } from "./profileEditor";
 import { ProfileNode, RemoteTree, registerFileCommands } from "./view";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -25,6 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("ftpBuddy.disconnect", (item?: ProfileNode) => disconnect(conns, item?.profile)),
     vscode.commands.registerCommand("ftpBuddy.addProfile", addProfile),
+    vscode.commands.registerCommand("ftpBuddy.manageProfiles", (item?: ProfileNode) => ProfileEditor.show(conns, item?.profile.name)),
     vscode.commands.registerCommand("ftpBuddy.editProfiles", () =>
       vscode.commands.executeCommand("workbench.action.openSettings", "ftpBuddy.profiles"),
     ),

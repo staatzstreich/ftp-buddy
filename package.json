@@ -2,7 +2,7 @@
   "name": "ftp-buddy",
   "displayName": "FTP Buddy",
   "description": "SFTP, FTP und FTPS in der Seitenleiste: durchsuchen, bearbeiten, hoch- und herunterladen, ohne lokale Kopie.",
-  "version": "0.13.1",
+  "version": "0.14.0",
   "publisher": "staatzstreich",
   "license": "MIT",
   "private": true,
@@ -33,10 +33,16 @@
         "icon": "$(add)"
       },
       {
+        "command": "ftpBuddy.manageProfiles",
+        "title": "Profile verwalten …",
+        "category": "FTP Buddy",
+        "icon": "$(gear)"
+      },
+      {
         "command": "ftpBuddy.editProfiles",
         "title": "Profile bearbeiten (settings.json)",
         "category": "FTP Buddy",
-        "icon": "$(gear)"
+        "icon": "$(json)"
       },
       {
         "command": "ftpBuddy.forgetPassword",
@@ -241,9 +247,14 @@
           "group": "navigation@1"
         },
         {
-          "command": "ftpBuddy.editProfiles",
+          "command": "ftpBuddy.manageProfiles",
           "when": "view == ftpBuddy.profiles",
           "group": "navigation@2"
+        },
+        {
+          "command": "ftpBuddy.editProfiles",
+          "when": "view == ftpBuddy.profiles",
+          "group": "overflow@1"
         },
         {
           "command": "ftpBuddy.showLog",
@@ -261,6 +272,11 @@
           "command": "ftpBuddy.disconnect",
           "when": "view == ftpBuddy.profiles && viewItem == profile.connected",
           "group": "inline"
+        },
+        {
+          "command": "ftpBuddy.manageProfiles",
+          "when": "view == ftpBuddy.profiles && viewItem =~ /^profile\\./",
+          "group": "8_manage"
         },
         {
           "command": "ftpBuddy.forgetPassword",

@@ -37,6 +37,10 @@ Beides zeigt einen Fortschritt mit „Abbrechen“. Gibt es eine Datei schon, fr
 (auch mehrere Ebenen, etwa bei der Ordner-Zuordnung). Ordner werden samt Inhalt übertragen, leere Ordner auch;
 symbolische Links werden beim Hochladen übersprungen.
 
+Profile legst du am bequemsten im Formular an und änderst sie dort: Zahnrad oben in der Seitenleiste oder Rechtsklick auf ein Profil → **Profile verwalten …**
+(Liste links, Felder rechts; Speichern, Löschen, Umbenennen mit Passwort). Die Einstellungs-Seite von VS Code kann für eine Liste von Objekten nur einen JSON-Link zeigen, deshalb gibt es das eigene Formular.
+Die `settings.json` bleibt über das Menü „…“ erreichbar.
+
 Oben im Feld: Aktualisieren, Profil anlegen, Einstellungen, Zeitmessung. Rechtsklick auf ein Profil: gespeichertes Passwort vergessen.
 
 **Andere Ebene anzeigen:** Der Baum beginnt im Startordner des Profils. Am verbundenen Profil gibt es den Pfeil **Eine Ebene höher**

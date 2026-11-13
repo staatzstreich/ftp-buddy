@@ -103,6 +103,13 @@ export class Connections {
     }, () => this.changed.fire());
   }
 
+  /** A renamed profile keeps its saved password. */
+  async renamePassword(from: string, to: string): Promise<void> {
+    const saved = await this.secrets.get(secretKey(from));
+    if (saved !== undefined) await this.secrets.store(secretKey(to), saved);
+    await this.forgetPassword(from);
+  }
+
   async forgetPassword(name: string): Promise<void> {
     await this.secrets.delete(secretKey(name));
     await this.drop(name);
