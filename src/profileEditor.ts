@@ -69,7 +69,7 @@ export class ProfileEditor {
   }
 }
 
-const FIELDS = ["name", "protocol", "host", "port", "username", "privateKeyPath", "useAgent", "remotePath", "localPath"] as const;
+const FIELDS = ["name", "group", "protocol", "host", "port", "username", "privateKeyPath", "useAgent", "remotePath", "localPath"] as const;
 
 /** Empty fields are left out, so the settings stay as small as the ones made by hand. */
 function clean(p: Profile): Profile {
@@ -118,6 +118,10 @@ function html(): string {
   aside h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; margin: 0 16px 8px; color: var(--vscode-descriptionForeground); }
   .item { padding: 6px 16px; cursor: pointer; display: block; width: 100%; text-align: left; background: none; border: 0; color: inherit; font: inherit; }
   .item small { display: block; color: var(--vscode-descriptionForeground); }
+  .grp { padding: 6px 16px; cursor: pointer; display: block; width: 100%; text-align: left; background: none; border: 0; color: inherit; font: inherit; font-weight: 600; }
+  .grp:hover { background: var(--vscode-list-hoverBackground); }
+  .grp span { color: var(--vscode-descriptionForeground); font-weight: normal; }
+  .in { padding-left: 28px; }
   .item:hover { background: var(--vscode-list-hoverBackground); }
   .item.sel { background: var(--vscode-list-activeSelectionBackground); color: var(--vscode-list-activeSelectionForeground); }
   .item.sel small { color: inherit; opacity: .8; }
@@ -145,6 +149,7 @@ function html(): string {
 <main>
   <h1 id="title">Neues Profil</h1>
   <div class="row"><label for="name">Name</label><input type="text" id="name"><div class="hint">Erscheint in der Seitenleiste.</div></div>
+  <div class="row"><label for="group">Gruppe</label><select id="groupSel"></select><input type="text" id="group" placeholder="Name der neuen Gruppe" style="margin-top:6px"><div class="hint">Optional. Profile mit gleicher Gruppe stehen in der Seitenleiste zusammen in einem aufklappbaren Ordner.</div></div>
   <div class="row"><label for="protocol">Protokoll</label>
     <select id="protocol">
       <option value="sftp">SFTP (über SSH)</option>
@@ -164,10 +169,12 @@ function html(): string {
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
   const $ = (id) => document.getElementById(id);
-  const text = ["name", "host", "username", "privateKeyPath", "remotePath", "localPath"];
+  const text = ["name", "group", "host", "username", "privateKeyPath", "remotePath", "localPath"];
   let profiles = [];
   let original; // name of the profile in the form, undefined for a new one
   let dirty = false;
+  const closed = new Set(); // groups folded in the list
+  const NONE = "", NEW = "__new__";
 
   function msg(t, error) { $("msg").textContent = t; $("msg").className = error ? "error" : ""; }
   function protocolChanged() {
@@ -187,17 +194,41 @@ function html(): string {
     dirty = false; msg("");
     protocolChanged(); renderList();
   }
+  function syncGroup() {
+    const known = [...new Set(profiles.map((p) => p.group).filter(Boolean))].sort();
+    const sel = $("groupSel"); sel.textContent = "";
+    const add = (v, t) => { const o = document.createElement("option"); o.value = v; o.textContent = t; sel.append(o); };
+    add(NONE, "(keine Gruppe)");
+    for (const g of known) add(g, g);
+    add(NEW, "Neue Gruppe \u2026");
+    const v = $("group").value.trim();
+    sel.value = v === "" ? NONE : known.includes(v) ? v : NEW;
+    $("group").style.display = sel.value === NEW ? "" : "none";
+  }
   function renderList() {
+    syncGroup();
     const list = $("list"); list.textContent = "";
     if (!profiles.length) { const e = document.createElement("div"); e.className = "empty"; e.textContent = "Noch keine Profile."; list.append(e); }
-    for (const p of profiles) {
+    const item = (p, nested) => {
       const b = document.createElement("button");
-      b.className = "item" + (p.name === original ? " sel" : "");
+      b.className = "item" + (p.name === original ? " sel" : "") + (nested ? " in" : "");
       b.append(document.createTextNode(p.name));
       const s = document.createElement("small"); s.textContent = p.protocol + "://" + p.host; b.append(s);
       b.onclick = () => fill(p);
-      list.append(b);
+      return b;
+    };
+    const groups = [...new Set(profiles.map((p) => p.group).filter(Boolean))].sort();
+    for (const g of groups) {
+      const members = profiles.filter((p) => p.group === g);
+      const h = document.createElement("button");
+      h.className = "grp";
+      h.append(document.createTextNode((closed.has(g) ? "\u25B8 " : "\u25BE ") + g + " "));
+      const c = document.createElement("span"); c.textContent = members.length; h.append(c);
+      h.onclick = () => { closed.has(g) ? closed.delete(g) : closed.add(g); renderList(); };
+      list.append(h);
+      if (!closed.has(g)) for (const p of members) list.append(item(p, true));
     }
+    for (const p of profiles.filter((p) => !p.group)) list.append(item(p, false));
   }
   function read() {
     const p = { protocol: $("protocol").value, useAgent: $("useAgent").checked };
@@ -209,6 +240,13 @@ function html(): string {
   $("del").onclick = () => original !== undefined && vscode.postMessage({ type: "delete", name: original });
   $("new").onclick = () => fill(undefined);
   $("protocol").onchange = protocolChanged;
+  $("groupSel").onchange = () => {
+    const v = $("groupSel").value;
+    $("group").value = v === NEW ? "" : v;
+    $("group").style.display = v === NEW ? "" : "none";
+    if (v === NEW) $("group").focus();
+    dirty = true; msg("");
+  };
   document.querySelectorAll("input,select").forEach((e) => e.addEventListener("input", () => { dirty = true; msg(""); }));
   window.addEventListener("message", (e) => {
     const m = e.data;

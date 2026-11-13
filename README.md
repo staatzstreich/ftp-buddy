@@ -39,7 +39,8 @@ symbolische Links werden beim Hochladen übersprungen.
 
 Profile legst du am bequemsten im Formular an und änderst sie dort: Zahnrad oben in der Seitenleiste oder Rechtsklick auf ein Profil → **Profile verwalten …**
 (Liste links, Felder rechts; Speichern, Löschen, Umbenennen mit Passwort). Die Einstellungs-Seite von VS Code kann für eine Liste von Objekten nur einen JSON-Link zeigen, deshalb gibt es das eigene Formular.
-Die `settings.json` bleibt über das Menü „…“ erreichbar.
+Mit dem Feld **Gruppe** lassen sich Profile zusammenfassen: In der Seitenleiste stehen sie dann in einem Ordner, der sich auf- und zuklappen lässt
+(in der `settings.json` ist es `"group": "Kunde A"`). Die `settings.json` bleibt über das Menü „…“ erreichbar.
 
 Oben im Feld: Aktualisieren, Profil anlegen, Einstellungen, Zeitmessung. Rechtsklick auf ein Profil: gespeichertes Passwort vergessen.
 

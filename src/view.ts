@@ -10,6 +10,19 @@ import { dirname, join as joinLocal, resolve } from "node:path";
 
 export type Node = ProfileNode | EntryNode;
 
+/** A folder of the side bar that holds the profiles with the same `group`. */
+export class GroupNode extends vscode.TreeItem {
+  constructor(readonly name: string, count: number) {
+    super(name, vscode.TreeItemCollapsibleState.Expanded);
+    this.id = `group:${name}`;
+    this.description = String(count);
+    this.iconPath = vscode.ThemeIcon.Folder;
+    this.contextValue = "group";
+  }
+}
+
+const groupOf = (p: Profile) => p.group?.trim() || undefined;
+
 export class ProfileNode extends vscode.TreeItem {
   constructor(readonly profile: Profile, readonly connected: boolean, viewRoot?: string) {
     super(profile.name, connected ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None);
@@ -44,8 +57,8 @@ export class EntryNode extends vscode.TreeItem {
 }
 
 /** The "FTP Buddy" side bar: profiles, and below a connected one its files and folders. */
-export class RemoteTree implements vscode.TreeDataProvider<Node>, vscode.Disposable {
-  private changed = new vscode.EventEmitter<Node | undefined>();
+export class RemoteTree implements vscode.TreeDataProvider<Node | GroupNode>, vscode.Disposable {
+  private changed = new vscode.EventEmitter<Node | GroupNode | undefined>();
   readonly onDidChangeTreeData = this.changed.event;
   private subs: vscode.Disposable[];
 
@@ -61,21 +74,35 @@ export class RemoteTree implements vscode.TreeDataProvider<Node>, vscode.Disposa
     ];
   }
 
-  refresh(node?: Node) {
+  refresh(node?: Node | GroupNode) {
     this.changed.fire(node);
   }
 
-  getTreeItem(node: Node): vscode.TreeItem {
+  getTreeItem(node: Node | GroupNode): vscode.TreeItem {
     return node;
   }
 
-  getParent(): undefined {
-    // Only profiles are ever revealed, and they sit at the top.
-    return undefined;
+  getParent(node: Node | GroupNode): GroupNode | undefined {
+    // Only profiles are ever revealed: they sit at the top or in their group.
+    if (!(node instanceof ProfileNode)) return undefined;
+    const g = groupOf(node.profile);
+    return g ? new GroupNode(g, profiles().filter((p) => groupOf(p) === g).length) : undefined;
   }
 
-  async getChildren(node?: Node): Promise<Node[]> {
-    if (!node) return profiles().map((p) => new ProfileNode(p, this.conns.isOpen(p.name), this.conns.isOpen(p.name) ? this.viewRoots.get(p.name) : undefined));
+  private profileNode(p: Profile): ProfileNode {
+    return new ProfileNode(p, this.conns.isOpen(p.name), this.conns.isOpen(p.name) ? this.viewRoots.get(p.name) : undefined);
+  }
+
+  async getChildren(node?: Node | GroupNode): Promise<(Node | GroupNode)[]> {
+    if (!node) {
+      const all = profiles();
+      const groups = [...new Set(all.map(groupOf).filter((g): g is string => g !== undefined))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      return [
+        ...groups.map((g) => new GroupNode(g, all.filter((p) => groupOf(p) === g).length)),
+        ...all.filter((p) => !groupOf(p)).map((p) => this.profileNode(p)),
+      ];
+    }
+    if (node instanceof GroupNode) return profiles().filter((p) => groupOf(p) === node.name).map((p) => this.profileNode(p));
     if (node instanceof ProfileNode) return this.list(node.profile, await this.rootOf(node.profile));
     return node.isDir ? this.list(node.profile, node.path) : [];
   }

@@ -4,7 +4,7 @@ import { applySshConfig, readSshConfig } from "./sshconfig";
 import { Connections, SCHEME, StoredHostKeys, profiles, uriFor } from "./backends";
 import { RemoteFileSystem } from "./provider";
 import { ProfileEditor } from "./profileEditor";
-import { ProfileNode, RemoteTree, registerFileCommands } from "./view";
+import { GroupNode, ProfileNode, RemoteTree, registerFileCommands } from "./view";
 
 export function activate(context: vscode.ExtensionContext) {
   const output = vscode.window.createOutputChannel("FTP Buddy");
@@ -19,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
     { dispose: () => void conns.drop() },
     treeView,
     tree,
-    ...registerFileCommands(tree, conns, fs, () => treeView.selection),
+    ...registerFileCommands(tree, conns, fs, () => treeView.selection.filter((n): n is Exclude<typeof n, GroupNode> => !(n instanceof GroupNode))),
     vscode.commands.registerCommand("ftpBuddy.connect", async (item?: ProfileNode) => {
       const node = await connect(conns, output, item?.profile);
       if (node) await treeView.reveal(node, { expand: true, focus: false, select: false }).then(undefined, () => undefined);
