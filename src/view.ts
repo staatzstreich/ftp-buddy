@@ -36,7 +36,6 @@ export class EntryNode extends vscode.TreeItem {
     this.id = this.uri.toString();
     this.contextValue = isDir ? "remote.dir" : "remote.file";
     if (mode !== undefined) {
-      this.description = formatOctal(mode);
       this.tooltip = `${path}\n${formatSymbolic(mode)} (${formatOctal(mode)})`;
     }
     if (!isDir) this.command = { command: "vscode.open", title: "Öffnen", arguments: [this.uri] };

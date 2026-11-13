@@ -11,7 +11,7 @@ auf: darunter stehen Ordner und Dateien des Servers. Ein Klick auf eine Datei ö
 schreibt direkt auf den Server. Es gibt keinen Explorer-Ordner, keinen Workspace und kein zusätzliches Fenster.
 
 Rechtsklick auf Ordner und Dateien: Neue Datei, Neuer Ordner, Umbenennen, Rechte ändern (Oktalzahl wie `644`; per `SITE CHMOD` bei FTP, nicht jeder Server erlaubt das), Löschen (Ordner mit Inhalt, nach Rückfrage), Pfad kopieren.
-Die Dateirechte stehen als Oktalzahl neben jedem Eintrag, ausgeschrieben (`rw-r--r--`) im Tooltip.
+Die Dateirechte stehen im Tooltip eines Eintrags, ausgeschrieben und als Oktalzahl (`rw-r--r-- (644)`).
 **Ordner-Zuordnung (`localPath`):** Trägst du im Profil zusätzlich zum Startordner (`remotePath`, sonst dem Login-Ordner) einen lokalen
 Ordner ein, gelten beide als „dieselbe Stelle“. Hochladen aus dem Explorer legt eine Datei dann an der passenden Stelle auf dem Server ab
 (`~/Developer/projekt/css/main.css` → `<remotePath>/css/main.css`), ohne dass du ein Ziel wählst. Herunterladen aus dem Baum
