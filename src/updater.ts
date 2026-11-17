@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
+import { join } from "node:path";
 import { REPO, Release, Update, updateFrom } from "./update";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -103,7 +105,13 @@ export class Updater {
           const file = vscode.Uri.joinPath(dir, `ftp-buddy-${update.version}.vsix`);
           await vscode.workspace.fs.writeFile(file, data);
           try {
-            await vscode.commands.executeCommand("workbench.extensions.installExtension", file);
+            try {
+              await vscode.commands.executeCommand("workbench.extensions.installExtension", vscode.Uri.file(file.fsPath));
+            } catch (e) {
+              // Some VS Code windows have no extension server for this command ("No Servers"); the command line still works.
+              this.output.appendLine(`[Update] Installationsbefehl fehlgeschlagen (${message(e)}); versuche die Kommandozeile`);
+              await installWithCli(file.fsPath);
+            }
           } finally {
             await vscode.workspace.fs.delete(file).then(undefined, () => undefined);
           }
@@ -122,6 +130,18 @@ export class Updater {
     );
     if (go === reload) await vscode.commands.executeCommand("workbench.action.reloadWindow");
   }
+}
+
+/** Runs `code --install-extension`, the way a person would, from the folder of the running VS Code. */
+function installWithCli(vsix: string): Promise<void> {
+  const code = join(vscode.env.appRoot, "bin", process.platform === "win32" ? "code.cmd" : "code");
+  return new Promise((resolve, reject) => {
+    execFile(code, ["--install-extension", vsix, "--force"], { timeout: 120_000 }, (err, stdout, stderr) => {
+      if (err) return reject(new Error(`Kommandozeile: ${stderr.trim() || err.message}`));
+      if (/successfully installed/i.test(stdout)) return resolve();
+      reject(new Error(`Kommandozeile: ${stdout.trim() || "keine Bestätigung"}`));
+    });
+  });
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
