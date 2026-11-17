@@ -43,6 +43,8 @@ jobs:
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" "$file" --clobber
           else
+            # actions/checkout holds an annotated tag as a plain one; fetching it again brings the text back
+            git fetch --tags --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
             notes="$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME")"
             gh release create "$GITHUB_REF_NAME" "$file" --title "$GITHUB_REF_NAME" --notes "${notes:-Version $VERSION}"
           fi
