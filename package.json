@@ -2,9 +2,13 @@
   "name": "ftp-buddy",
   "displayName": "FTP Buddy",
   "description": "SFTP, FTP und FTPS in der Seitenleiste: durchsuchen, bearbeiten, hoch- und herunterladen, ohne lokale Kopie.",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "publisher": "staatzstreich",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/staatzstreich/ftp-buddy.git"
+  },
   "private": true,
   "engines": {
     "vscode": "^1.90.0"
