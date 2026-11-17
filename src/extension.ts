@@ -5,6 +5,7 @@ import { Connections, SCHEME, StoredHostKeys, askDeleteGroup, askRenameGroup, pr
 import { RemoteFileSystem } from "./provider";
 import { ProfileEditor } from "./profileEditor";
 import { GroupNode, ProfileNode, RemoteTree, registerFileCommands } from "./view";
+import { Updater } from "./updater";
 
 export function activate(context: vscode.ExtensionContext) {
   const output = vscode.window.createOutputChannel("FTP Buddy");
@@ -12,6 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
   const conns = new Connections(context.secrets, hostKeys, output);
   const fs = new RemoteFileSystem(conns);
   const tree = new RemoteTree(conns, fs);
+  const updater = new Updater(context, output);
   const treeView = vscode.window.createTreeView("ftpBuddy.profiles", { treeDataProvider: tree, canSelectMany: true });
   context.subscriptions.push(
     output,
@@ -42,6 +44,8 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("ftpBuddy.showLog", () => output.show()),
     vscode.commands.registerCommand("ftpBuddy.reconnect", () => conns.drop()),
+    vscode.commands.registerCommand("ftpBuddy.checkForUpdates", () => updater.check(true)),
+    updater.scheduleAutomatic(),
   );
 }
 

@@ -43,6 +43,9 @@ Mit dem Feld **Gruppe** lassen sich Profile zusammenfassen: In der Seitenleiste 
 (in der `settings.json` ist es `"group": "Kunde A"`). Rechtsklick auf die Gruppe, oder die Links unter dem Feld im Formular:
 **Gruppe umbenennen …** und **Gruppe löschen …** (die Profile bleiben erhalten, nur ohne Gruppe). Die `settings.json` bleibt über das Menü „…“ erreichbar.
 
+**Updates:** Die Erweiterung sucht einmal am Tag auf GitHub nach einer neueren Version und bietet die Installation an (nur nach Klick, mit Prüfsumme).
+Sofort prüfen: Befehl „FTP Buddy: Nach Updates suchen“. Abschalten: Einstellung `ftpBuddy.checkForUpdates`.
+
 Oben im Feld: Aktualisieren, Profil anlegen, Einstellungen, Zeitmessung. Rechtsklick auf ein Profil: gespeichertes Passwort vergessen.
 
 **Andere Ebene anzeigen:** Der Baum beginnt im Startordner des Profils. Am verbundenen Profil gibt es den Pfeil **Eine Ebene höher**
